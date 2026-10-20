@@ -1,7 +1,7 @@
 name: Generate EF migration
 
 # Run manually (Actions tab -> Generate EF migration). It creates the migration for the current
-# model and uploads it as an artifact; download it and commit the files under
+# model and commits it to the branch under
 # src/CareerPilot.Infrastructure/Persistence/Migrations. No database is needed.
 on:
   workflow_dispatch:
@@ -10,6 +10,9 @@ on:
         description: Migration name
         required: true
         default: InitialCreate
+
+permissions:
+  contents: write
 
 jobs:
   migration:
@@ -26,7 +29,10 @@ jobs:
           --project src/CareerPilot.Infrastructure
           --startup-project src/CareerPilot.API
           --output-dir Persistence/Migrations
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ef-migration-${{ inputs.name }}
-          path: src/CareerPilot.Infrastructure/Persistence/Migrations
+      - name: Commit migration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/CareerPilot.Infrastructure/Persistence/Migrations
+          git commit -m "Add EF migration ${{ inputs.name }}"
+          git push
