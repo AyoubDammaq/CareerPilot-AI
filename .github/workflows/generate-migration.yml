@@ -1,0 +1,32 @@
+name: Generate EF migration
+
+# Run manually (Actions tab -> Generate EF migration). It creates the migration for the current
+# model and uploads it as an artifact; download it and commit the files under
+# src/CareerPilot.Infrastructure/Persistence/Migrations. No database is needed.
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: Migration name
+        required: true
+        default: InitialCreate
+
+jobs:
+  migration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet tool install --global dotnet-ef
+      - name: Add migration
+        run: >
+          dotnet ef migrations add "${{ inputs.name }}"
+          --project src/CareerPilot.Infrastructure
+          --startup-project src/CareerPilot.API
+          --output-dir Persistence/Migrations
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ef-migration-${{ inputs.name }}
+          path: src/CareerPilot.Infrastructure/Persistence/Migrations

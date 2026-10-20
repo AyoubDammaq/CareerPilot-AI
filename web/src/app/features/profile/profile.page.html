@@ -1,0 +1,457 @@
+<header class="page-header">
+  <h1>Career Profile</h1>
+  <p class="muted">The facts about you. Everything later in CareerPilot is built from what you enter and verify here.</p>
+</header>
+
+@if (loading()) {
+  <p role="status" class="muted">Loading your profile&hellip;</p>
+} @else if (loadError()) {
+  <div class="alert alert-error" role="alert">
+    <p>{{ loadError() }}</p>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate class="profile-form">
+    <div class="status-region">
+      <div aria-live="polite" aria-atomic="true">
+        @if (saveMessage()) {
+          <p class="alert alert-ok">{{ saveMessage() }}</p>
+        }
+      </div>
+      <div #statusPanel tabindex="-1" aria-live="assertive" aria-atomic="true" class="status-panel">
+        @if (conflict()) {
+          <div class="alert alert-error">
+            <p>
+              <strong>This profile was changed elsewhere.</strong> Your copy is out of date, so it was not saved. You can reload
+              the latest version (your unsaved edits here will be discarded), or keep editing and copy what you need first.
+            </p>
+            <div class="row">
+              <button type="button" class="btn btn-primary" (click)="reloadFromServer()">Reload latest version</button>
+              <button type="button" class="btn" (click)="conflict.set(false)">Keep editing</button>
+            </div>
+          </div>
+        }
+        @if (saveError()) {
+          <div class="alert alert-error">
+            <p>{{ saveError() }}</p>
+            @if (serverIssues().length > 0) {
+              <ul>
+                @for (i of serverIssues(); track i.path) {
+                  <li>
+                    @if (i.unmapped) {
+                      <code>{{ i.path }}</code>:
+                    }
+                    {{ i.messages.join(' ') }}
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <p class="note" id="verified-note">
+      <strong>About &ldquo;Verified&rdquo;:</strong> ticking Verified on an experience, skill or project means
+      <em>&ldquo;I confirm this is true.&rdquo;</em> Generated CVs will only use verified facts later.
+    </p>
+
+    <!-- Personal ------------------------------------------------------- -->
+    <section class="card" aria-labelledby="h-personal">
+      <h2 id="h-personal">Personal and contact</h2>
+      <div class="grid">
+        <div class="field">
+          <label for="fullName">Full name</label>
+          <input id="fullName" type="text" formControlName="fullName" autocomplete="name" aria-describedby="fullName-err" [attr.aria-invalid]="invalid(form.controls.fullName) ? true : null" />
+          <app-field-error errorId="fullName-err" [control]="form.controls.fullName" />
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" formControlName="email" autocomplete="email" aria-describedby="email-err" [attr.aria-invalid]="invalid(form.controls.email) ? true : null" />
+          <app-field-error errorId="email-err" [control]="form.controls.email" />
+        </div>
+        <div class="field">
+          <label for="phone">Phone <span class="opt">(optional)</span></label>
+          <input id="phone" type="tel" formControlName="phone" autocomplete="tel" aria-describedby="phone-err" [attr.aria-invalid]="invalid(form.controls.phone) ? true : null" />
+          <app-field-error errorId="phone-err" [control]="form.controls.phone" />
+        </div>
+        <div class="field">
+          <label for="headline">Headline</label>
+          <input id="headline" type="text" formControlName="headline" placeholder="e.g. Backend engineer" aria-describedby="headline-err" [attr.aria-invalid]="invalid(form.controls.headline) ? true : null" />
+          <app-field-error errorId="headline-err" [control]="form.controls.headline" />
+        </div>
+        <div class="field">
+          <label for="country">Country</label>
+          <input id="country" type="text" formControlName="country" autocomplete="country-name" aria-describedby="country-err" [attr.aria-invalid]="invalid(form.controls.country) ? true : null" />
+          <app-field-error errorId="country-err" [control]="form.controls.country" />
+        </div>
+        <div class="field">
+          <label for="city">City</label>
+          <input id="city" type="text" formControlName="city" autocomplete="address-level2" aria-describedby="city-err" [attr.aria-invalid]="invalid(form.controls.city) ? true : null" />
+          <app-field-error errorId="city-err" [control]="form.controls.city" />
+        </div>
+        <div class="field">
+          <label for="githubUrl">GitHub URL <span class="opt">(optional)</span></label>
+          <input id="githubUrl" type="url" formControlName="githubUrl" aria-describedby="githubUrl-err" [attr.aria-invalid]="invalid(form.controls.githubUrl) ? true : null" />
+          <app-field-error errorId="githubUrl-err" [control]="form.controls.githubUrl" />
+        </div>
+        <div class="field">
+          <label for="linkedinUrl">LinkedIn URL <span class="opt">(optional)</span></label>
+          <input id="linkedinUrl" type="url" formControlName="linkedinUrl" aria-describedby="linkedinUrl-err" [attr.aria-invalid]="invalid(form.controls.linkedinUrl) ? true : null" />
+          <app-field-error errorId="linkedinUrl-err" [control]="form.controls.linkedinUrl" />
+        </div>
+        <div class="field">
+          <label for="websiteUrl">Website URL <span class="opt">(optional)</span></label>
+          <input id="websiteUrl" type="url" formControlName="websiteUrl" aria-describedby="websiteUrl-err" [attr.aria-invalid]="invalid(form.controls.websiteUrl) ? true : null" />
+          <app-field-error errorId="websiteUrl-err" [control]="form.controls.websiteUrl" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="summary">Professional summary</label>
+        <textarea id="summary" rows="5" formControlName="summary" aria-describedby="summary-err" [attr.aria-invalid]="invalid(form.controls.summary) ? true : null"></textarea>
+        <app-field-error errorId="summary-err" [control]="form.controls.summary" />
+      </div>
+    </section>
+
+    <!-- Experience ----------------------------------------------------- -->
+    <section class="card" aria-labelledby="h-exp">
+      <h2 id="h-exp">Work experience</h2>
+      <p class="muted small">Tick Verified only for roles you confirm are accurate.</p>
+      @if (form.controls.workExperiences.length === 0) {
+        <p class="empty">No experience added yet.</p>
+      }
+      @for (g of form.controls.workExperiences.controls; track g; let i = $index) {
+        <div class="item" [formGroup]="g" role="group" [attr.aria-label]="'Work experience ' + (i + 1)">
+          <div class="item-head">
+            <h3>Experience {{ i + 1 }}</h3>
+            <button type="button" class="btn btn-danger" (click)="removeExperience(i)" [attr.aria-label]="'Remove experience ' + (i + 1)">Remove</button>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label [for]="'exp' + i + '-company'">Company</label>
+              <input [id]="'exp' + i + '-company'" type="text" formControlName="company" [attr.aria-describedby]="'exp' + i + '-company-err'" [attr.aria-invalid]="invalid(g.controls.company) ? true : null" />
+              <app-field-error [errorId]="'exp' + i + '-company-err'" [control]="g.controls.company" />
+            </div>
+            <div class="field">
+              <label [for]="'exp' + i + '-title'">Job title</label>
+              <input [id]="'exp' + i + '-title'" type="text" formControlName="title" [attr.aria-describedby]="'exp' + i + '-title-err'" [attr.aria-invalid]="invalid(g.controls.title) ? true : null" />
+              <app-field-error [errorId]="'exp' + i + '-title-err'" [control]="g.controls.title" />
+            </div>
+            <div class="field">
+              <label [for]="'exp' + i + '-location'">Location</label>
+              <input [id]="'exp' + i + '-location'" type="text" formControlName="location" [attr.aria-describedby]="'exp' + i + '-location-err'" [attr.aria-invalid]="invalid(g.controls.location) ? true : null" />
+              <app-field-error [errorId]="'exp' + i + '-location-err'" [control]="g.controls.location" />
+            </div>
+            <div class="field">
+              <label [for]="'exp' + i + '-start'">Start date</label>
+              <input [id]="'exp' + i + '-start'" type="date" formControlName="startDate" [attr.aria-describedby]="'exp' + i + '-start-err'" [attr.aria-invalid]="invalid(g.controls.startDate) ? true : null" />
+              <app-field-error [errorId]="'exp' + i + '-start-err'" [control]="g.controls.startDate" />
+            </div>
+            <div class="field">
+              <label [for]="'exp' + i + '-end'">End date <span class="opt">(leave empty if current)</span></label>
+              <input [id]="'exp' + i + '-end'" type="date" formControlName="endDate" [attr.aria-describedby]="'exp' + i + '-end-err'" [attr.aria-invalid]="invalid(g.controls.endDate) ? true : null" />
+              <app-field-error [errorId]="'exp' + i + '-end-err'" [control]="g.controls.endDate" />
+            </div>
+          </div>
+          <div class="field">
+            <label [for]="'exp' + i + '-desc'">Description</label>
+            <textarea [id]="'exp' + i + '-desc'" rows="3" formControlName="description" [attr.aria-describedby]="'exp' + i + '-desc-err'" [attr.aria-invalid]="invalid(g.controls.description) ? true : null"></textarea>
+            <app-field-error [errorId]="'exp' + i + '-desc-err'" [control]="g.controls.description" />
+          </div>
+          <fieldset class="field sub">
+            <legend>Achievements</legend>
+            @for (a of g.controls.achievements.controls; track a; let j = $index) {
+              <div class="line">
+                <label class="visually-hidden" [for]="'exp' + i + '-ach' + j">Achievement {{ j + 1 }}</label>
+                <input [id]="'exp' + i + '-ach' + j" type="text" [formControl]="a" [attr.aria-describedby]="'exp' + i + '-ach' + j + '-err'" [attr.aria-invalid]="invalid(a) ? true : null" />
+                <button type="button" class="btn" (click)="removeLine(g.controls.achievements, j)" [attr.aria-label]="'Remove achievement ' + (j + 1) + ' of experience ' + (i + 1)">Remove</button>
+              </div>
+              <app-field-error [errorId]="'exp' + i + '-ach' + j + '-err'" [control]="a" />
+            }
+            <button type="button" class="btn btn-small" (click)="addLine(g.controls.achievements)">Add achievement</button>
+          </fieldset>
+          <div class="check">
+            <input [id]="'exp' + i + '-ver'" type="checkbox" formControlName="isVerified" aria-describedby="verified-note" />
+            <label [for]="'exp' + i + '-ver'">Verified: I confirm this is true</label>
+          </div>
+        </div>
+      }
+      <button type="button" class="btn" (click)="addExperience()">Add experience</button>
+    </section>
+
+    <!-- Education ------------------------------------------------------ -->
+    <section class="card" aria-labelledby="h-edu">
+      <h2 id="h-edu">Education</h2>
+      @if (form.controls.education.length === 0) {
+        <p class="empty">No education added yet.</p>
+      }
+      @for (g of form.controls.education.controls; track g; let i = $index) {
+        <div class="item" [formGroup]="g" role="group" [attr.aria-label]="'Education ' + (i + 1)">
+          <div class="item-head">
+            <h3>Education {{ i + 1 }}</h3>
+            <button type="button" class="btn btn-danger" (click)="removeEducation(i)" [attr.aria-label]="'Remove education ' + (i + 1)">Remove</button>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label [for]="'edu' + i + '-inst'">Institution</label>
+              <input [id]="'edu' + i + '-inst'" type="text" formControlName="institution" [attr.aria-describedby]="'edu' + i + '-inst-err'" [attr.aria-invalid]="invalid(g.controls.institution) ? true : null" />
+              <app-field-error [errorId]="'edu' + i + '-inst-err'" [control]="g.controls.institution" />
+            </div>
+            <div class="field">
+              <label [for]="'edu' + i + '-degree'">Degree</label>
+              <input [id]="'edu' + i + '-degree'" type="text" formControlName="degree" [attr.aria-describedby]="'edu' + i + '-degree-err'" [attr.aria-invalid]="invalid(g.controls.degree) ? true : null" />
+              <app-field-error [errorId]="'edu' + i + '-degree-err'" [control]="g.controls.degree" />
+            </div>
+            <div class="field">
+              <label [for]="'edu' + i + '-field'">Field of study</label>
+              <input [id]="'edu' + i + '-field'" type="text" formControlName="field" [attr.aria-describedby]="'edu' + i + '-field-err'" [attr.aria-invalid]="invalid(g.controls.field) ? true : null" />
+              <app-field-error [errorId]="'edu' + i + '-field-err'" [control]="g.controls.field" />
+            </div>
+            <div class="field">
+              <label [for]="'edu' + i + '-start'">Start date <span class="opt">(optional)</span></label>
+              <input [id]="'edu' + i + '-start'" type="date" formControlName="startDate" [attr.aria-describedby]="'edu' + i + '-start-err'" [attr.aria-invalid]="invalid(g.controls.startDate) ? true : null" />
+              <app-field-error [errorId]="'edu' + i + '-start-err'" [control]="g.controls.startDate" />
+            </div>
+            <div class="field">
+              <label [for]="'edu' + i + '-end'">End date <span class="opt">(optional)</span></label>
+              <input [id]="'edu' + i + '-end'" type="date" formControlName="endDate" [attr.aria-describedby]="'edu' + i + '-end-err'" [attr.aria-invalid]="invalid(g.controls.endDate) ? true : null" />
+              <app-field-error [errorId]="'edu' + i + '-end-err'" [control]="g.controls.endDate" />
+            </div>
+          </div>
+        </div>
+      }
+      <button type="button" class="btn" (click)="addEducation()">Add education</button>
+    </section>
+
+    <!-- Skills --------------------------------------------------------- -->
+    <section class="card" aria-labelledby="h-skills">
+      <h2 id="h-skills">Skills</h2>
+      <p class="muted small">Verified means &ldquo;I confirm this is true.&rdquo; Only verified skills will be used in generated CVs.</p>
+      @if (form.controls.skills.length === 0) {
+        <p class="empty">No skills added yet.</p>
+      }
+      @for (g of form.controls.skills.controls; track g; let i = $index) {
+        <div class="item item-compact" [formGroup]="g" role="group" [attr.aria-label]="'Skill ' + (i + 1)">
+          <div class="item-head">
+            <h3>Skill {{ i + 1 }}</h3>
+            <button type="button" class="btn btn-danger" (click)="removeSkill(i)" [attr.aria-label]="'Remove skill ' + (i + 1)">Remove</button>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label [for]="'skill' + i + '-name'">Name</label>
+              <input [id]="'skill' + i + '-name'" type="text" formControlName="name" [attr.aria-describedby]="'skill' + i + '-name-err'" [attr.aria-invalid]="invalid(g.controls.name) ? true : null" />
+              <app-field-error [errorId]="'skill' + i + '-name-err'" [control]="g.controls.name" />
+            </div>
+            <div class="field">
+              <label [for]="'skill' + i + '-cat'">Category</label>
+              <input [id]="'skill' + i + '-cat'" type="text" formControlName="category" placeholder="e.g. Backend" [attr.aria-describedby]="'skill' + i + '-cat-err'" [attr.aria-invalid]="invalid(g.controls.category) ? true : null" />
+              <app-field-error [errorId]="'skill' + i + '-cat-err'" [control]="g.controls.category" />
+            </div>
+            <div class="field">
+              <label [for]="'skill' + i + '-level'">Level</label>
+              <select [id]="'skill' + i + '-level'" formControlName="level" [attr.aria-describedby]="'skill' + i + '-level-err'" [attr.aria-invalid]="invalid(g.controls.level) ? true : null">
+                <option value="">Not specified</option>
+                @for (l of skillLevels; track l) {
+                  <option [value]="l">{{ l }}</option>
+                }
+              </select>
+              <app-field-error [errorId]="'skill' + i + '-level-err'" [control]="g.controls.level" />
+            </div>
+          </div>
+          <div class="check">
+            <input [id]="'skill' + i + '-ver'" type="checkbox" formControlName="isVerified" aria-describedby="verified-note" />
+            <label [for]="'skill' + i + '-ver'">Verified: I confirm this is true</label>
+          </div>
+        </div>
+      }
+      <button type="button" class="btn" (click)="addSkill()">Add skill</button>
+    </section>
+
+    <!-- Projects ------------------------------------------------------- -->
+    <section class="card" aria-labelledby="h-proj">
+      <h2 id="h-proj">Projects</h2>
+      @if (form.controls.projects.length === 0) {
+        <p class="empty">No projects added yet.</p>
+      }
+      @for (g of form.controls.projects.controls; track g; let i = $index) {
+        <div class="item" [formGroup]="g" role="group" [attr.aria-label]="'Project ' + (i + 1)">
+          <div class="item-head">
+            <h3>Project {{ i + 1 }}</h3>
+            <button type="button" class="btn btn-danger" (click)="removeProject(i)" [attr.aria-label]="'Remove project ' + (i + 1)">Remove</button>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label [for]="'proj' + i + '-name'">Name</label>
+              <input [id]="'proj' + i + '-name'" type="text" formControlName="name" [attr.aria-describedby]="'proj' + i + '-name-err'" [attr.aria-invalid]="invalid(g.controls.name) ? true : null" />
+              <app-field-error [errorId]="'proj' + i + '-name-err'" [control]="g.controls.name" />
+            </div>
+            <div class="field">
+              <label [for]="'proj' + i + '-url'">URL <span class="opt">(optional)</span></label>
+              <input [id]="'proj' + i + '-url'" type="url" formControlName="url" [attr.aria-describedby]="'proj' + i + '-url-err'" [attr.aria-invalid]="invalid(g.controls.url) ? true : null" />
+              <app-field-error [errorId]="'proj' + i + '-url-err'" [control]="g.controls.url" />
+            </div>
+          </div>
+          <div class="field">
+            <label [for]="'proj' + i + '-desc'">Description</label>
+            <textarea [id]="'proj' + i + '-desc'" rows="3" formControlName="description" [attr.aria-describedby]="'proj' + i + '-desc-err'" [attr.aria-invalid]="invalid(g.controls.description) ? true : null"></textarea>
+            <app-field-error [errorId]="'proj' + i + '-desc-err'" [control]="g.controls.description" />
+          </div>
+          <div class="field">
+            <label [for]="'proj' + i + '-tech'">Technologies</label>
+            <app-chip-input [inputId]="'proj' + i + '-tech'" formControlName="technologies" listLabel="Technologies" placeholder="Type a technology and press Enter" [describedBy]="'proj' + i + '-tech-err'" [invalid]="invalid(g.controls.technologies)" />
+            <app-field-error [errorId]="'proj' + i + '-tech-err'" [control]="g.controls.technologies" />
+          </div>
+          <fieldset class="field sub">
+            <legend>Results</legend>
+            @for (r of g.controls.results.controls; track r; let j = $index) {
+              <div class="line">
+                <label class="visually-hidden" [for]="'proj' + i + '-res' + j">Result {{ j + 1 }}</label>
+                <input [id]="'proj' + i + '-res' + j" type="text" [formControl]="r" [attr.aria-describedby]="'proj' + i + '-res' + j + '-err'" [attr.aria-invalid]="invalid(r) ? true : null" />
+                <button type="button" class="btn" (click)="removeLine(g.controls.results, j)" [attr.aria-label]="'Remove result ' + (j + 1) + ' of project ' + (i + 1)">Remove</button>
+              </div>
+              <app-field-error [errorId]="'proj' + i + '-res' + j + '-err'" [control]="r" />
+            }
+            <button type="button" class="btn btn-small" (click)="addLine(g.controls.results)">Add result</button>
+          </fieldset>
+          <div class="check">
+            <input [id]="'proj' + i + '-ver'" type="checkbox" formControlName="isVerified" aria-describedby="verified-note" />
+            <label [for]="'proj' + i + '-ver'">Verified: I confirm this is true</label>
+          </div>
+        </div>
+      }
+      <button type="button" class="btn" (click)="addProject()">Add project</button>
+    </section>
+
+    <!-- Languages ------------------------------------------------------ -->
+    <section class="card" aria-labelledby="h-lang">
+      <h2 id="h-lang">Languages</h2>
+      @if (form.controls.languages.length === 0) {
+        <p class="empty">No languages added yet.</p>
+      }
+      <datalist id="language-levels">
+        @for (l of languageLevels; track l) {
+          <option [value]="l"></option>
+        }
+      </datalist>
+      @for (g of form.controls.languages.controls; track g; let i = $index) {
+        <div class="item item-compact" [formGroup]="g" role="group" [attr.aria-label]="'Language ' + (i + 1)">
+          <div class="item-head">
+            <h3>Language {{ i + 1 }}</h3>
+            <button type="button" class="btn btn-danger" (click)="removeLanguage(i)" [attr.aria-label]="'Remove language ' + (i + 1)">Remove</button>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label [for]="'lang' + i + '-name'">Language</label>
+              <input [id]="'lang' + i + '-name'" type="text" formControlName="name" [attr.aria-describedby]="'lang' + i + '-name-err'" [attr.aria-invalid]="invalid(g.controls.name) ? true : null" />
+              <app-field-error [errorId]="'lang' + i + '-name-err'" [control]="g.controls.name" />
+            </div>
+            <div class="field">
+              <label [for]="'lang' + i + '-level'">Level <span class="opt">(e.g. B2, Native)</span></label>
+              <input [id]="'lang' + i + '-level'" type="text" list="language-levels" formControlName="level" [attr.aria-describedby]="'lang' + i + '-level-err'" [attr.aria-invalid]="invalid(g.controls.level) ? true : null" />
+              <app-field-error [errorId]="'lang' + i + '-level-err'" [control]="g.controls.level" />
+            </div>
+          </div>
+        </div>
+      }
+      <button type="button" class="btn" (click)="addLanguage()">Add language</button>
+    </section>
+
+    <!-- Preferences ---------------------------------------------------- -->
+    <section class="card" aria-labelledby="h-pref" [formGroup]="form.controls.preferences">
+      <h2 id="h-pref">Job preferences</h2>
+      @let p = form.controls.preferences.controls;
+      <div class="grid">
+        <div class="field">
+          <label for="pref-countries">Target countries</label>
+          <app-chip-input inputId="pref-countries" formControlName="targetCountries" listLabel="Target countries" describedBy="pref-countries-err" [invalid]="invalid(p.targetCountries)" />
+          <app-field-error errorId="pref-countries-err" [control]="p.targetCountries" />
+        </div>
+        <div class="field">
+          <label for="pref-cities">Target cities</label>
+          <app-chip-input inputId="pref-cities" formControlName="targetCities" listLabel="Target cities" describedBy="pref-cities-err" [invalid]="invalid(p.targetCities)" />
+          <app-field-error errorId="pref-cities-err" [control]="p.targetCities" />
+        </div>
+        <div class="field">
+          <label for="pref-titles">Target job titles</label>
+          <app-chip-input inputId="pref-titles" formControlName="targetTitles" listLabel="Target job titles" describedBy="pref-titles-err" [invalid]="invalid(p.targetTitles)" />
+          <app-field-error errorId="pref-titles-err" [control]="p.targetTitles" />
+        </div>
+        <div class="field">
+          <label for="pref-langs">Working languages</label>
+          <app-chip-input inputId="pref-langs" formControlName="workingLanguages" listLabel="Working languages" describedBy="pref-langs-err" [invalid]="invalid(p.workingLanguages)" />
+          <app-field-error errorId="pref-langs-err" [control]="p.workingLanguages" />
+        </div>
+      </div>
+
+      <div class="grid">
+        <fieldset class="field sub">
+          <legend>Work modes</legend>
+          @for (m of workModes; track m) {
+            <div class="check">
+              <input [id]="'mode-' + m" type="checkbox" [checked]="has(p.workModes, m)" (change)="toggle(p.workModes, m, $any($event.target).checked)" />
+              <label [for]="'mode-' + m">{{ modeLabel(m) }}</label>
+            </div>
+          }
+          <app-field-error errorId="pref-modes-err" [control]="p.workModes" />
+        </fieldset>
+        <fieldset class="field sub">
+          <legend>Employment types</legend>
+          @for (t of employmentTypes; track t) {
+            <div class="check">
+              <input [id]="'etype-' + t" type="checkbox" [checked]="has(p.employmentTypes, t)" (change)="toggle(p.employmentTypes, t, $any($event.target).checked)" />
+              <label [for]="'etype-' + t">{{ employmentLabel(t) }}</label>
+            </div>
+          }
+          <app-field-error errorId="pref-etypes-err" [control]="p.employmentTypes" />
+        </fieldset>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="pref-level">Experience level</label>
+          <input id="pref-level" type="text" formControlName="experienceLevel" placeholder="e.g. Mid, Senior" aria-describedby="pref-level-err" [attr.aria-invalid]="invalid(p.experienceLevel) ? true : null" />
+          <app-field-error errorId="pref-level-err" [control]="p.experienceLevel" />
+        </div>
+        <div class="field">
+          <label for="pref-currency">Salary currency</label>
+          <input id="pref-currency" type="text" formControlName="salaryCurrency" placeholder="e.g. EUR" maxlength="3" aria-describedby="pref-currency-err" [attr.aria-invalid]="invalid(p.salaryCurrency) ? true : null" />
+          <app-field-error errorId="pref-currency-err" [control]="p.salaryCurrency" />
+        </div>
+        <div class="field">
+          <label for="pref-min">Minimum salary <span class="opt">(per year, optional)</span></label>
+          <input id="pref-min" type="number" min="0" inputmode="numeric" formControlName="minSalary" aria-describedby="pref-min-err" [attr.aria-invalid]="invalid(p.minSalary) ? true : null" />
+          <app-field-error errorId="pref-min-err" [control]="p.minSalary" />
+        </div>
+        <div class="field">
+          <label for="pref-pref">Preferred salary <span class="opt">(per year, optional)</span></label>
+          <input id="pref-pref" type="number" min="0" inputmode="numeric" formControlName="preferredSalary" aria-describedby="pref-pref-err" [attr.aria-invalid]="invalid(p.preferredSalary) ? true : null" />
+          <app-field-error errorId="pref-pref-err" [control]="p.preferredSalary" />
+        </div>
+      </div>
+
+      <div class="toggles">
+        <div class="check">
+          <input id="pref-relocate" type="checkbox" formControlName="willingToRelocate" />
+          <label for="pref-relocate">Willing to relocate</label>
+        </div>
+        <div class="check">
+          <input id="pref-visa" type="checkbox" formControlName="requiresVisaSponsorship" />
+          <label for="pref-visa">Requires visa sponsorship</label>
+        </div>
+        <div class="check">
+          <input id="pref-intl-remote" type="checkbox" formControlName="includeInternationalRemote" />
+          <label for="pref-intl-remote">Include international remote roles</label>
+        </div>
+        <div class="check">
+          <input id="pref-senior" type="checkbox" formControlName="includeSeniorRoles" />
+          <label for="pref-senior">Include senior roles</label>
+        </div>
+      </div>
+    </section>
+
+    <div class="save-bar">
+      <span class="dirty-indicator" [class.is-dirty]="dirty()">{{ dirty() ? 'Unsaved changes' : 'No unsaved changes' }}</span>
+      <button type="submit" class="btn btn-primary" [disabled]="saving() || !dirty()">{{ saving() ? 'Saving…' : 'Save profile' }}</button>
+    </div>
+  </form>
+}

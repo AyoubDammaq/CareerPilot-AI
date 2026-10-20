@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: careerpilot
+      POSTGRES_USER: careerpilot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U careerpilot -d careerpilot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "127.0.0.1:5432:5432"   # local access only
+
+  api:
+    build:
+      context: .
+      dockerfile: src/CareerPilot.API/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: Host=db;Database=careerpilot;Username=careerpilot;Password=${POSTGRES_PASSWORD}
+      Auth__Password: ${AUTH_PASSWORD:?Set AUTH_PASSWORD in .env (min 12 chars)}
+      Auth__JwtKey: ${AUTH_JWT_KEY:?Set AUTH_JWT_KEY in .env (min 32 chars)}
+    ports:
+      - "127.0.0.1:5080:8080"
+
+  web:
+    build:
+      context: ./web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:4200:80"
+
+volumes:
+  pgdata:

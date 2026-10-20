@@ -1,0 +1,61 @@
+<header class="page-header">
+  <h1>Dashboard</h1>
+  <p class="muted">Where your job search stands.</p>
+</header>
+
+@if (loading()) {
+  <p role="status" class="muted">Loading&hellip;</p>
+} @else if (error()) {
+  <div class="alert alert-error" role="alert">
+    <p>{{ error() }}</p>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+} @else {
+  @if (data(); as d) {
+    <section class="card" aria-labelledby="h-complete">
+      <h2 id="h-complete">Profile completeness</h2>
+      <div class="meter-row">
+        <div class="meter" role="progressbar" aria-labelledby="h-complete" [attr.aria-valuenow]="pct(d)" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuetext]="pct(d) + ' percent complete'">
+          <div class="meter-fill" [style.width.%]="pct(d)"></div>
+        </div>
+        <strong class="meter-value">{{ pct(d) }}%</strong>
+      </div>
+      @if (d.missingItems.length > 0) {
+        <h3>Still missing</h3>
+        <ul class="missing-list">
+          @for (m of d.missingItems; track m) {
+            <li><a routerLink="/profile">{{ m }}</a></li>
+          }
+        </ul>
+      } @else {
+        <p>Your profile has everything the checklist asks for.</p>
+      }
+      <p><a routerLink="/profile" class="btn btn-primary">Open Career Profile</a></p>
+    </section>
+
+    @if (d.implementedModules.length > 0) {
+      <section class="card" aria-labelledby="h-mods">
+        <h2 id="h-mods">Modules reported by the server</h2>
+        <ul class="tags">
+          @for (m of d.implementedModules; track m) {
+            <li>{{ m }}</li>
+          }
+        </ul>
+      </section>
+    }
+  }
+
+  <section aria-labelledby="h-soon">
+    <h2 id="h-soon">Coming later</h2>
+    <p class="muted">These areas are not built yet, so there is nothing to show for them.</p>
+    <ul class="cards">
+      @for (u of upcoming; track u.path) {
+        <li class="card card-soon">
+          <h3>{{ u.label }}</h3>
+          <p class="muted">{{ u.blurb }}</p>
+          <p class="badge">{{ u.label2 }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+}

@@ -1,0 +1,51 @@
+# CareerPilot AI — Project Status
+
+Last updated: 2026-10-20
+
+## Legend (used for every item below)
+- **Tested** — automated tests were actually run and passed in this workspace.
+- **Syntax-checked only** — C# parsed cleanly (tree-sitter), but **not compiled and not run**. This workspace cannot reach the .NET SDK or NuGet (network allowlist), so the CI workflow is the first real compile.
+- **Written, unverified** — exists but nothing has exercised it.
+- **Planned** — not started.
+
+## Decision log
+- 2026-10-20: Owner chose **"Keep C#, verify via CI"**. Backend stays .NET 10 / ASP.NET Core; GitHub Actions (`.github/workflows/ci.yml`) is the compile-and-test loop. Backend code stays labelled *unverified* until the first green CI run.
+- "Golf countries" in the brief was read as the **Gulf states (GCC)**: Saudi Arabia, UAE, Qatar, Kuwait, Bahrain, Oman, added to the initial (editable) target countries. Correct this in the UI if it was meant differently.
+- Added `includeInternationalRemote` preference (brief lists "international remote" as a target but the model had no field for it).
+
+## Phase 1 — Foundation
+
+| Item | State |
+|---|---|
+| Architecture + plan (`docs/ARCHITECTURE.md`) | Done (design document) |
+| Solution layout: Domain / Application / Infrastructure / API (.NET 10, Clean Architecture) | Syntax-checked only |
+| Profile aggregate (experience, education, skills, projects, languages, preferences), optimistic concurrency, validation, completeness score | Syntax-checked only |
+| Initial profile contains only facts the owner stated; nothing pre-verified, no skill levels, no metrics | Syntax-checked only (unit test written) |
+| JWT login (single owner, constant-time password check, login rate limit, everything else requires auth) | Syntax-checked only |
+| Audit log (events staged in the same unit of work, no personal data in details) | Syntax-checked only |
+| Application workflow state machine + **approval enforcement in the domain** (approval bound to content hash, no submit without approval, unconfirmed ≠ submitted) | Syntax-checked only (domain unit tests written) |
+| EF Core model + PostgreSQL | Syntax-checked only. **No migration committed yet** (see next step) |
+| Health endpoints `/health/live`, `/health/ready` | Syntax-checked only |
+| Docker Compose (db + api + web) | Written, unverified (Docker daemon not usable here) |
+| Angular 22 frontend: login, shell, dashboard, profile editor (all sections, server-error mapping), placeholder pages | **Tested** — 41 unit tests pass, production build succeeds (Node 24) |
+
+### Test inventory
+- Frontend (Vitest via `ng test`): **41 passing** — run here.
+- Backend unit tests (`tests/CareerPilot.Tests`): workflow rules, approval/submission negative tests, validator, mapper, completeness, profile service, default-profile truthfulness — **written, not yet run**.
+- Backend integration tests (`tests/CareerPilot.IntegrationTests`): HTTP pipeline + real PostgreSQL (auth, 401/400/409, persistence, version bump) — **written, not yet run**. They report *skipped* (never passed) when `CAREERPILOT_TEST_DB` is unset.
+
+## Not started (Phases 2–8)
+Job discovery connectors, deduplication/verification, matching engine, CV import and tailored CV/cover-letter generation (DOCX/PDF), approval UI + submission, tracking/analytics, scheduler/worker, notifications, production hardening.
+
+## Known limitations / honest notes
+- Backend has never been compiled. Expect a first round of compile fixes after the first CI run.
+- No official public search API for Indeed or LinkedIn; EURES and Wellfound official access unverified. Greenhouse/Lever/Ashby public feeds are per company, so a company watchlist is required. Official apply endpoints are employer-side, so MVP submission is a **guided manual flow with owner-reported confirmation**, not automated submission.
+- On first start with no migration the API falls back to `EnsureCreated` (dev only, logged as a warning).
+- First-run profile creation is not race-protected (two simultaneous first requests could create two profiles; single-user app, low risk, to be hardened with a unique constraint).
+- Angular CLI needs Node >= 22.22.3; this workspace had 22.22.0, so a Node 24 binary from the npm registry was used for local runs. CI uses Node 24.
+
+## Exact next steps
+1. Push this folder to a GitHub repository (not done: I did not create or push to any repository).
+2. Watch the first **CI** run. Send me the compile or test errors, or give me access to the repo so I can read them, and I fix them.
+3. Run **Actions → Generate EF migration**, download the artifact, commit it under `src/CareerPilot.Infrastructure/Persistence/Migrations`.
+4. When CI is green, Phase 1 is complete; start Phase 2 (normalized job schema, Greenhouse + Lever connectors via the company watchlist, deduplication, job-status verification).
