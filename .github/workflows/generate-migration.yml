@@ -23,6 +23,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - run: dotnet tool install --global dotnet-ef
+      - run: dotnet restore CareerPilot.slnx
       - name: Add migration
         run: >
           dotnet ef migrations add "${{ inputs.name }}"
