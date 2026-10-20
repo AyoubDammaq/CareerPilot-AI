@@ -33,6 +33,16 @@ jobs:
         env:
           CAREERPILOT_TEST_DB: Host=localhost;Port=5432;Database=careerpilot_test;Username=careerpilot;Password=careerpilot-ci
         run: dotnet test tests/CareerPilot.IntegrationTests -c Release --no-build --logger "trx;LogFileName=integration.trx"
+      - name: Test summary (fails if anything was skipped or nothing ran)
+        if: always()
+        run: |
+          for f in $(find . -name '*.trx'); do
+            c=$(grep -o '<Counters [^>]*>' "$f")
+            echo "::notice title=$(basename $f)::$c"
+            echo "$c" | grep -q 'executed="0"' && { echo "No tests executed in $f"; exit 1; }
+            echo "$c" | grep -qE 'notExecuted="[1-9]' && { echo "Skipped tests in $f"; exit 1; }
+          done
+          exit 0
       - uses: actions/upload-artifact@v4
         if: always()
         with:
