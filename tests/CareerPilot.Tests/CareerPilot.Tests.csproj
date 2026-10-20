@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CareerPilot.Domain\CareerPilot.Domain.csproj" />
     <ProjectReference Include="..\..\src\CareerPilot.Application\CareerPilot.Application.csproj" />
+    <ProjectReference Include="..\..\src\CareerPilot.Infrastructure\CareerPilot.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />

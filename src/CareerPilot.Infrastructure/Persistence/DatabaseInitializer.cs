@@ -31,6 +31,8 @@ public static class DatabaseInitializer
                     logger.LogWarning("No EF migrations found; using EnsureCreated. Create an initial migration before storing real data.");
                     await db.Database.EnsureCreatedAsync(ct);
                 }
+
+                await WatchlistSeeder.SeedAsync(db, ct);
                 return;
             }
             catch (Exception ex) when (attempt < MaxAttempts && ex is not OperationCanceledException)

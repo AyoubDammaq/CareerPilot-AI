@@ -1,8 +1,10 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using CareerPilot.API.Auth;
+using CareerPilot.API.Jobs;
 using CareerPilot.Application;
 using CareerPilot.Application.Common;
+using CareerPilot.Application.Jobs;
 using CareerPilot.Application.Profiles;
 using CareerPilot.Infrastructure;
 using CareerPilot.Infrastructure.Persistence;
@@ -21,7 +23,10 @@ builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOpt
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<TokenService>();
 
-builder.Services.AddApplication();
+var discovery = builder.Configuration.GetSection(DiscoveryOptions.Section).Get<DiscoveryOptions>() ?? new DiscoveryOptions();
+builder.Services.AddApplication(discovery);
+builder.Services.AddSingleton<SearchRunQueue>();
+builder.Services.AddHostedService<SearchRunWorker>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.Configure<JsonOptions>(o => o.SerializerOptions.PropertyNameCaseInsensitive = true);
@@ -81,6 +86,14 @@ app.UseExceptionHandler(handler => handler.Run(async ctx =>
                 status = 409,
             });
             break;
+        case NotFoundException nf:
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            await ctx.Response.WriteAsJsonAsync(new { title = nf.Message, status = 404 });
+            break;
+        case ConflictException conflict:
+            ctx.Response.StatusCode = StatusCodes.Status409Conflict;
+            await ctx.Response.WriteAsJsonAsync(new { title = conflict.Message, status = 409 });
+            break;
         case BadHttpRequestException bad:
             ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
             await ctx.Response.WriteAsJsonAsync(new { title = "The request body is malformed.", status = 400, errors = new Dictionary<string, string[]>() });
@@ -120,6 +133,8 @@ app.MapPut("/api/profile", async (ProfileDto dto, ProfileService profiles, Cance
 
 app.MapGet("/api/dashboard", async (ProfileService profiles, CancellationToken ct) =>
     Results.Ok(await profiles.GetDashboardAsync(ct)));
+
+app.MapJobEndpoints();
 
 // ---- startup -------------------------------------------------------------------------
 var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");

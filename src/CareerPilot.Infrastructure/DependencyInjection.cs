@@ -1,4 +1,6 @@
 using CareerPilot.Application.Abstractions;
+using CareerPilot.Application.Jobs;
+using CareerPilot.Infrastructure.Jobs;
 using CareerPilot.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +19,23 @@ public static class DependencyInjection
         services.AddDbContext<CareerPilotDbContext>(o => o.UseNpgsql(connectionString));
         services.AddScoped<IProfileStore, EfProfileStore>();
         services.AddScoped<IAuditLog, EfAuditLog>();
+        services.AddScoped<IJobStore, EfJobStore>();
+
+        services.AddSingleton(new ConnectorOptions());
+        AddConnector<GreenhouseConnector>(services);
+        AddConnector<LeverConnector>(services);
+        AddConnector<AshbyConnector>(services);
         return services;
+    }
+
+    private static void AddConnector<T>(IServiceCollection services) where T : class, IJobSourceConnector
+    {
+        services.AddHttpClient<T>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(ConnectorSupport.UserAgent);
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        });
+        services.AddTransient<IJobSourceConnector>(sp => sp.GetRequiredService<T>());
     }
 }

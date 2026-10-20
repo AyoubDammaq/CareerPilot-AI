@@ -7,3 +7,7 @@ public sealed class ValidationFailedException(IReadOnlyDictionary<string, string
 }
 
 public sealed class ConcurrencyConflictException(string message) : Exception(message);
+
+public sealed class ConflictException(string message) : Exception(message);
+
+public sealed class NotFoundException(string message) : Exception(message);
