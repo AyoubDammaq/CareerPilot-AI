@@ -86,6 +86,9 @@ public sealed class JobSearchService(
         var prefs = profile?.Preferences ?? new JobPreference();
         var profileSkills = profile?.Skills.Select(s => s.Name).ToList() ?? [];
 
+        if (profile is null)
+            run.Errors.Add("No profile exists yet, so location checks use no preferences and jobs were not scored. Open your profile, then re-score.");
+
         var companies = await jobs.GetCompaniesAsync(enabledOnly: true, ct);
         run.CompaniesTotal = companies.Count;
         var first = true;

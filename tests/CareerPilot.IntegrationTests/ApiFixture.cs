@@ -74,6 +74,9 @@ public sealed class ApiFixture : IDisposable
         var client = _fakeFactory.CreateClient();
         _token ??= await LoginAsync(_factory!.CreateClient());
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _token);
+        // The profile is created on first read (as when the owner opens the app); searching needs it for
+        // location checks and scoring, so tests must not depend on another test having created it.
+        (await client.GetAsync("/api/profile")).EnsureSuccessStatusCode();
         return client;
     }
 
