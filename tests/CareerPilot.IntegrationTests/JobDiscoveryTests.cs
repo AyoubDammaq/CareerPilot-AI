@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using CareerPilot.Application.Jobs;
+using CareerPilot.Application.Matching;
 
 namespace CareerPilot.IntegrationTests;
 
@@ -98,6 +99,38 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
         Assert.NotEmpty(sales.FilterReasons);
         var ny = all.Items.First(j => j.Country == "United States");
         Assert.Equal("NoMatch", ny.GeoFit);
+    }
+
+    [RequiresDatabaseFact]
+    public async Task Jobs_are_scored_explained_sortable_and_rescorable()
+    {
+        using var client = await api.CreateFakeConnectorClientAsync();
+        await RunSearchAsync(client);
+
+        var list = (await client.GetFromJsonAsync<PagedResult<JobSummaryDto>>("/api/jobs?sort=score&relevantOnly=false&pageSize=100", Json))!;
+        Assert.NotEmpty(list.Items);
+        Assert.All(list.Items, j => Assert.NotNull(j.MatchScore));
+        var scores = list.Items.Select(j => j.MatchScore!.Value).ToList();
+        Assert.Equal(scores.OrderByDescending(x => x), scores);
+
+        var best = list.Items[0];
+        var detail = (await client.GetFromJsonAsync<JobDetailDto>($"/api/jobs/{best.Id}", Json))!;
+        Assert.NotNull(detail.Match);
+        Assert.Equal(best.MatchScore, detail.Match!.Score);
+        Assert.Equal(8, detail.Match.Components.Count);
+        Assert.All(detail.Match.Components, c => Assert.False(string.IsNullOrWhiteSpace(c.Note)));
+
+        var min = scores.Max();
+        var filtered = (await client.GetFromJsonAsync<PagedResult<JobSummaryDto>>($"/api/jobs?relevantOnly=false&minScore={min}&pageSize=100", Json))!;
+        Assert.NotEmpty(filtered.Items);
+        Assert.All(filtered.Items, j => Assert.True(j.MatchScore >= min));
+
+        var rescore = await client.PostAsync("/api/jobs/rescore", null);
+        Assert.Equal(HttpStatusCode.OK, rescore.StatusCode);
+        Assert.Contains("scored", await rescore.Content.ReadAsStringAsync());
+
+        using var anon = api.CreateAnonymousClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.PostAsync("/api/jobs/rescore", null)).StatusCode);
     }
 
     [RequiresDatabaseFact]

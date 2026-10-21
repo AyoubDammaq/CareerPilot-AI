@@ -51,6 +51,12 @@ public class JobListing : Entity
     public bool IsRelevant { get; set; }
     public List<string> FilterReasons { get; set; } = [];
 
+    // Match against the owner's profile (recomputed when jobs or the profile change). MatchJson is the
+    // serialized explanation; it is derived data and can always be rebuilt.
+    public int? MatchScore { get; set; }
+    public string? MatchJson { get; set; }
+    public DateTimeOffset? ScoredAt { get; set; }
+
     public UserDecision Decision { get; set; } = UserDecision.None;
 
     public List<JobPosting> Postings { get; set; } = [];

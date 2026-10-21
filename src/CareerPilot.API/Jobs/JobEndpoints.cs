@@ -1,5 +1,6 @@
 using CareerPilot.Application.Abstractions;
 using CareerPilot.Application.Jobs;
+using CareerPilot.Application.Matching;
 using CareerPilot.Domain.Jobs;
 
 namespace CareerPilot.API.Jobs;
@@ -39,10 +40,11 @@ public static class JobEndpoints
         jobs.MapGet("", async (
             JobQueryService s, CancellationToken ct,
             string? q, string? country, string? workMode, string? status, bool? relevantOnly,
-            string? geoFit, string? decision, string? sort, int? page, int? pageSize) =>
+            string? geoFit, string? decision, string? sort, int? page, int? pageSize, int? minScore) =>
             Results.Ok(await s.QueryAsync(new JobQuery(
                 q, country, workMode, status, relevantOnly ?? true, geoFit, decision,
-                sort ?? "newest", page ?? 1, pageSize ?? 25), ct)));
+                sort ?? "newest", page ?? 1, pageSize ?? 25, minScore), ct)));
+        jobs.MapPost("rescore", async (MatchingService m, CancellationToken ct) => Results.Ok(await m.RescoreAllAsync(ct)));
         jobs.MapGet("{id:guid}", async (Guid id, JobQueryService s, CancellationToken ct) => Results.Ok(await s.GetAsync(id, ct)));
         jobs.MapPut("{id:guid}/decision", async (Guid id, DecisionInput input, JobQueryService s, CancellationToken ct) =>
             Results.Ok(await s.SetDecisionAsync(id, input.Decision, ct)));

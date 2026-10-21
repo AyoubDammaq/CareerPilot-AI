@@ -139,6 +139,7 @@ public class CareerPilotDbContext(DbContextOptions<CareerPilotDbContext> options
             b.Property(x => x.SalaryMax).HasPrecision(14, 2);
             b.Property(x => x.Language).HasMaxLength(10);
             b.Property(x => x.GeoNote).HasMaxLength(1000);
+            b.Property(x => x.MatchJson).HasColumnType("text");
             b.Property(x => x.WorkMode).HasConversion<string>().HasMaxLength(20);
             b.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
             b.Property(x => x.Seniority).HasConversion<string>().HasMaxLength(20);

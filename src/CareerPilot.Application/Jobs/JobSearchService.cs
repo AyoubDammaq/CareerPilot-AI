@@ -1,5 +1,6 @@
 using CareerPilot.Application.Abstractions;
 using CareerPilot.Application.Common;
+using CareerPilot.Application.Matching;
 using CareerPilot.Domain.Jobs;
 using CareerPilot.Domain.Profiles;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ public sealed class JobSearchService(
     IProfileStore profiles,
     IEnumerable<IJobSourceConnector> connectors,
     DiscoveryOptions options,
+    ScoringOptions scoring,
     TimeProvider clock,
     IAuditLog audit,
     ILogger<JobSearchService> logger)
@@ -130,6 +132,8 @@ public sealed class JobSearchService(
         JobIngestion.RefreshStatuses(listings, options, now2);
         foreach (var l in listings)
             JobClassifier.Classify(l, prefs, options, profile?.Country);
+        if (profile is not null)
+            MatchingService.ApplyAll(listings, profile, scoring, now2);
 
         run.Status = run.CompaniesTotal == 0 || run.CompaniesSucceeded == run.CompaniesTotal
             ? SearchRunStatus.Succeeded

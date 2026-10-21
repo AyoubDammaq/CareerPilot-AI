@@ -12,7 +12,8 @@ public sealed record JobQuery(
     string? Decision = null,
     string Sort = "newest",
     int Page = 1,
-    int PageSize = 25);
+    int PageSize = 25,
+    int? MinScore = null);
 
 /// <summary>
 /// Persistence for jobs, the watchlist and search runs. Entities returned by Get*/List* are tracked, so

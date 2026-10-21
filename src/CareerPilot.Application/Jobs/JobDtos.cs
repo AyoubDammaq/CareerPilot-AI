@@ -19,9 +19,10 @@ public sealed record JobSummaryDto(
     DateTimeOffset? PublishedAt, DateTimeOffset DiscoveredAt, DateTimeOffset LastVerifiedAt,
     DateTimeOffset? ApplicationDeadline, decimal? SalaryMin, decimal? SalaryMax, string? SalaryCurrency,
     string? SalaryPeriod, string Decision, string? Language, bool MentionsSponsorship, bool MentionsRelocation,
-    string SourceUrl, string ApplyUrl, List<string> Sources);
+    string SourceUrl, string ApplyUrl, List<string> Sources, int? MatchScore = null, string? MatchTier = null);
 
-public sealed record JobDetailDto(JobSummaryDto Summary, string Description, int? ExperienceYearsHint, List<PostingDto> Postings);
+public sealed record JobDetailDto(JobSummaryDto Summary, string Description, int? ExperienceYearsHint, List<PostingDto> Postings,
+    CareerPilot.Application.Matching.MatchResult? Match = null);
 
 public sealed record PagedResult<T>(List<T> Items, int Total, int Page, int PageSize);
 
@@ -48,12 +49,14 @@ public static class JobMapper
             l.SalaryMin, l.SalaryMax, l.SalaryCurrency, l.SalaryPeriod, l.Decision.ToString(), l.Language,
             l.MentionsSponsorship, l.MentionsRelocation,
             primary?.SourceUrl ?? "", primary?.ApplyUrl ?? "",
-            [.. l.Postings.Select(p => p.Kind.ToString()).Distinct()]);
+            [.. l.Postings.Select(p => p.Kind.ToString()).Distinct()],
+            l.MatchScore, CareerPilot.Application.Matching.MatchingService.Deserialize(l.MatchJson)?.Tier);
     }
 
     public static JobDetailDto ToDetail(JobListing l) => new(
         ToSummary(l), l.Description, l.ExperienceYearsHint,
-        [.. l.Postings.Select(p => new PostingDto(p.Kind.ToString(), p.SourceUrl, p.ApplyUrl, p.IsPresent, p.LastSeenAt))]);
+        [.. l.Postings.Select(p => new PostingDto(p.Kind.ToString(), p.SourceUrl, p.ApplyUrl, p.IsPresent, p.LastSeenAt))],
+        CareerPilot.Application.Matching.MatchingService.Deserialize(l.MatchJson));
 
     public static SearchRunDto ToDto(SearchRun r) => new(
         r.Id, r.Trigger.ToString(), r.Status.ToString(), r.CreatedAt, r.StartedAt, r.FinishedAt,

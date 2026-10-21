@@ -5,6 +5,7 @@ using CareerPilot.API.Jobs;
 using CareerPilot.Application;
 using CareerPilot.Application.Common;
 using CareerPilot.Application.Jobs;
+using CareerPilot.Application.Matching;
 using CareerPilot.Application.Profiles;
 using CareerPilot.Infrastructure;
 using CareerPilot.Infrastructure.Persistence;
@@ -24,7 +25,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<TokenService>();
 
 var discovery = builder.Configuration.GetSection(DiscoveryOptions.Section).Get<DiscoveryOptions>() ?? new DiscoveryOptions();
-builder.Services.AddApplication(discovery);
+var scoring = builder.Configuration.GetSection(ScoringOptions.Section).Get<ScoringOptions>() ?? new ScoringOptions();
+builder.Services.AddApplication(discovery, scoring);
 builder.Services.AddSingleton<SearchRunQueue>();
 builder.Services.AddHostedService<SearchRunWorker>();
 builder.Services.AddInfrastructure(builder.Configuration);

@@ -29,7 +29,7 @@ public class JobSearchServiceTests
         public JobSearchService Service()
         {
             var connector = new FakeConnector(JobSourceKind.Greenhouse, c => Feeds[c.Name]());
-            return new JobSearchService(Store, new StaticProfileStore(Profile), [connector], Options, TimeProvider.System,
+            return new JobSearchService(Store, new StaticProfileStore(Profile), [connector], Options, new CareerPilot.Application.Matching.ScoringOptions(), TimeProvider.System,
                 Audit, NullLogger<JobSearchService>.Instance);
         }
 

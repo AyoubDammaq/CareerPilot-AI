@@ -64,11 +64,15 @@ public sealed class EfJobStore(CareerPilotDbContext db) : IJobStore
             q = q.Where(l => EF.Functions.ILike(l.Title, pattern) || EF.Functions.ILike(l.CompanyName, pattern));
         }
 
+        if (query.MinScore is { } minScore)
+            q = q.Where(l => l.MatchScore != null && l.MatchScore >= minScore);
+
         var total = await q.CountAsync(ct);
 
         q = query.Sort switch
         {
             "company" => q.OrderBy(l => l.CompanyName).ThenBy(l => l.Title).ThenBy(l => l.Id),
+            "score" => q.OrderByDescending(l => l.MatchScore ?? -1).ThenByDescending(l => l.PublishedAt ?? l.DiscoveredAt).ThenBy(l => l.Id),
             "title" => q.OrderBy(l => l.Title).ThenBy(l => l.Id),
             "verified" => q.OrderByDescending(l => l.LastVerifiedAt).ThenBy(l => l.Id),
             "deadline" => q.OrderBy(l => l.ApplicationDeadline == null).ThenBy(l => l.ApplicationDeadline).ThenBy(l => l.Id),
