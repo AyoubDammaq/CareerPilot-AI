@@ -31,13 +31,13 @@ describe('OpportunitiesPage', () => {
     vi.useRealTimers();
   });
 
-  it('asks for relevant, open jobs, newest first, by default', () => {
+  it('asks for relevant, open jobs, best match first, by default', () => {
     TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()] });
     ctrl = TestBed.inject(HttpTestingController);
     TestBed.createComponent(OpportunitiesPage).detectChanges();
     const p = listReq().request.params;
     expect(p.get('relevantOnly')).toBe('true');
-    expect(p.get('sort')).toBe('newest');
+    expect(p.get('sort')).toBe('score');
     expect(p.get('page')).toBe('1');
     expect(p.get('pageSize')).toBe('20');
     expect(p.has('q')).toBe(false);
@@ -135,10 +135,75 @@ describe('OpportunitiesPage', () => {
     });
   });
 
+  describe('match score', () => {
+    const match = {
+      score: 82, tier: 'Strong', confidence: 70,
+      components: [
+        { key: 'skills', label: 'Skills', maxPoints: 30, points: 22.5, known: true, note: '3 of 4 technologies in the posting are on your profile.' },
+        { key: 'salary', label: 'Salary', maxPoints: 5, points: 2.5, known: false, note: 'The posting states no salary.' },
+      ],
+      matchedSkills: ['C#'], missingSkills: ['Kafka'], warnings: ['Visa sponsorship is not mentioned; ask before investing time.'],
+    };
+
+    it('shows the score and tier on each card, and says when a job is not scored', () => {
+      const f = create([sampleJob(), sampleJob({ id: 'j2', matchScore: null, matchTier: null })]);
+      const cards = el(f).querySelectorAll('.job');
+      expect(cards[0].querySelector('.score')!.textContent).toContain('82');
+      expect(cards[0].querySelector('.score')!.getAttribute('aria-label')).toBe('Match score 82 out of 100, Strong');
+      expect(cards[1].querySelector('.score')).toBeNull();
+      expect(cards[1].textContent).toContain('Not scored yet');
+    });
+
+    it('explains the score on demand: points per criterion, estimates, matched and missing skills, warnings', () => {
+      const f = create();
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Why this score')) as HTMLButtonElement).click();
+      f.detectChanges();
+      ctrl.expectOne('/api/jobs/j1').flush({ summary: sampleJob(), description: 'x', experienceYearsHint: null, postings: [], match });
+      f.detectChanges();
+      const text = el(f).querySelector('.match')!.textContent!;
+      expect(text).toContain('Why 82/100 (Strong)');
+      expect(text).toContain('70% of this score rests on facts');
+      expect(text).toContain('22.5 / 30');
+      expect(text).toContain('estimated');
+      expect(text).toContain('On your profile: C#');
+      expect(text).toContain('Mentioned but not on your profile: Kafka');
+      expect(text).toContain('Visa sponsorship is not mentioned');
+      expect(el(f).querySelectorAll('.breakdown meter').length).toBe(2);
+    });
+
+    it('sends the minimum score filter', () => {
+      vi.useFakeTimers();
+      const f = create();
+      f.componentInstance.filters.patchValue({ minScore: '60' });
+      vi.advanceTimersByTime(300);
+      expect(listReq().request.params.get('minScore')).toBe('60');
+    });
+
+    it('re-scores on request, reports how many jobs and reloads the list', () => {
+      const f = create();
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Re-score all jobs')) as HTMLButtonElement).click();
+      f.detectChanges();
+      ctrl.expectOne((r) => r.method === 'POST' && r.url === '/api/jobs/rescore').flush({ scored: 12, profileMissing: false });
+      listReq().flush({ items: [sampleJob({ matchScore: 90 })], total: 1, page: 1, pageSize: 20 });
+      f.detectChanges();
+      expect(el(f).textContent).toContain('Re-scored 12 jobs');
+      expect(el(f).querySelector('.score')!.textContent).toContain('90');
+    });
+
+    it('says so when there is no profile to score against', () => {
+      const f = create();
+      f.componentInstance.rescore();
+      ctrl.expectOne((r) => r.url === '/api/jobs/rescore').flush({ scored: 0, profileMissing: true });
+      listReq().flush({ items: [], total: 0, page: 1, pageSize: 20 });
+      f.detectChanges();
+      expect(f.componentInstance.notice()).toContain('Create your profile first');
+    });
+  });
+
   describe('description', () => {
     it('is loaded on demand and shown as inert plain text', () => {
       const f = create();
-      const toggle = Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.trim() === 'Show description') as HTMLButtonElement;
+      const toggle = Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.trim() === 'Why this score & description') as HTMLButtonElement;
       toggle.click();
       f.detectChanges();
       expect(el(f).textContent).toContain('Loading');
@@ -165,7 +230,7 @@ describe('OpportunitiesPage', () => {
 
     it('shows an error when the description cannot be loaded', () => {
       const f = create();
-      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.trim() === 'Show description') as HTMLButtonElement).click();
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.trim() === 'Why this score & description') as HTMLButtonElement).click();
       ctrl.expectOne('/api/jobs/j1').flush({}, { status: 500, statusText: 'x' });
       f.detectChanges();
       expect(el(f).textContent).toContain('Could not load the description.');
@@ -208,7 +273,7 @@ describe('OpportunitiesPage', () => {
       vi.advanceTimersByTime(300);
       const p = listReq().request.params;
       expect(p.has('q')).toBe(false);
-      expect(p.get('sort')).toBe('newest');
+      expect(p.get('sort')).toBe('score');
       expect(p.get('relevantOnly')).toBe('true');
     });
   });

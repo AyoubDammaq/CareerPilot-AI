@@ -61,7 +61,7 @@ export function sampleJob(overrides: Partial<JobSummaryDto> = {}): JobSummaryDto
     discoveredAt: '2026-10-01T00:00:00Z', lastVerifiedAt: '2026-10-20T00:00:00Z', applicationDeadline: null,
     salaryMin: null, salaryMax: null, salaryCurrency: null, salaryPeriod: null, decision: 'None', language: 'en',
     mentionsSponsorship: false, mentionsRelocation: false, sourceUrl: 'https://careers.example.test/1',
-    applyUrl: 'https://careers.example.test/1/apply', sources: ['Greenhouse'],
+    applyUrl: 'https://careers.example.test/1/apply', sources: ['Greenhouse'], matchScore: 82, matchTier: 'Strong',
     ...overrides,
   };
 }

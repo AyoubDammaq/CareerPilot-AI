@@ -1,6 +1,6 @@
 <header class="page-header">
   <h1>Job Opportunities</h1>
-  <p class="muted">Jobs found on your company boards, checked against your profile preferences. Scoring and match explanations arrive in Phase 3.</p>
+  <p class="muted">Jobs found on your company boards, checked against your profile preferences. Each job gets a 0 to 100 match score you can open to see exactly why. The score only compares the posting with your profile; it never applies anywhere.</p>
 </header>
 
 <section class="card" aria-labelledby="filters-h">
@@ -52,8 +52,18 @@
         </select>
       </div>
       <div class="field">
+        <label for="f-min">Minimum match</label>
+        <select id="f-min" formControlName="minScore">
+          <option value="">Any</option>
+          <option value="45">Possible (45+)</option>
+          <option value="60">Good (60+)</option>
+          <option value="75">Strong (75+)</option>
+        </select>
+      </div>
+      <div class="field">
         <label for="f-sort">Sort by</label>
         <select id="f-sort" formControlName="sort">
+          <option value="score">Best match</option>
           <option value="newest">Most recent</option>
           <option value="company">Company</option>
           <option value="title">Title</option>
@@ -68,11 +78,17 @@
         <label for="f-filtered">Also show jobs filtered out (with the reason)</label>
       </div>
       <button type="button" class="btn btn-small" (click)="clearFilters()">Clear filters</button>
+      <button type="button" class="btn btn-small" (click)="rescore()" [disabled]="rescoring()">
+        {{ rescoring() ? 'Re-scoring…' : 'Re-score all jobs' }}
+      </button>
     </div>
   </form>
 </section>
 
 <div aria-live="polite">
+  @if (notice()) {
+    <p class="alert" role="status">{{ notice() }}</p>
+  }
   @if (actionError()) {
     <p class="alert alert-error" role="alert">{{ actionError() }}</p>
   }
@@ -103,9 +119,18 @@
             <h2>{{ job.title }}</h2>
             <p class="muted">{{ job.companyName }} &middot; {{ job.locationText || 'Location not stated' }}</p>
           </div>
-          @if (job.decision !== 'None') {
-            <span class="badge">{{ job.decision }}</span>
-          }
+          <div class="job-badges">
+            @if (job.matchScore !== null) {
+              <span class="score" [attr.data-tier]="job.matchTier" [attr.aria-label]="'Match score ' + job.matchScore + ' out of 100, ' + job.matchTier">
+                <strong>{{ job.matchScore }}</strong><span class="small">/100 {{ job.matchTier }}</span>
+              </span>
+            } @else {
+              <span class="badge">Not scored yet</span>
+            }
+            @if (job.decision !== 'None') {
+              <span class="badge">{{ job.decision }}</span>
+            }
+          </div>
         </div>
 
         <ul class="tags">
@@ -152,7 +177,7 @@
             </a>
           }
           <button type="button" class="btn btn-small" (click)="toggleDetails(job)" [attr.aria-expanded]="isOpen(job)" [attr.aria-controls]="'d-' + job.id">
-            {{ isOpen(job) ? 'Hide description' : 'Show description' }}
+            {{ isOpen(job) ? 'Hide details' : 'Why this score & description' }}
           </button>
           @if (job.decision === 'Saved') {
             <button type="button" class="btn btn-small" (click)="decide(job, 'None')" [attr.aria-label]="'Unsave ' + job.title">Unsave</button>
@@ -173,6 +198,36 @@
             } @else if (detailState(job) === 'error') {
               <p class="alert alert-error" role="alert">Could not load the description.</p>
             } @else if (detail(job); as d) {
+              @if (d.match; as m) {
+                <section class="match" aria-label="Why this score">
+                  <h3>Why {{ m.score }}/100 ({{ m.tier }})</h3>
+                  <p class="muted small">
+                    {{ m.confidence }}% of this score rests on facts from the posting and your profile; the rest uses a neutral default where information was missing.
+                  </p>
+                  @for (w of m.warnings; track w) {
+                    <p class="alert alert-error small">{{ w }}</p>
+                  }
+                  <ul class="breakdown">
+                    @for (c of m.components; track c.key) {
+                      <li>
+                        <div class="row">
+                          <strong>{{ c.label }}</strong>
+                          <span>{{ c.points }} / {{ c.maxPoints }}</span>
+                          @if (!c.known) { <span class="tag-warn small">estimated</span> }
+                        </div>
+                        <meter min="0" max="100" [value]="pct(c)" [attr.aria-label]="c.label + ' ' + pct(c) + ' percent'"></meter>
+                        <p class="muted small">{{ c.note }}</p>
+                      </li>
+                    }
+                  </ul>
+                  @if (m.matchedSkills.length > 0) {
+                    <p class="small"><strong>On your profile:</strong> {{ m.matchedSkills.join(', ') }}</p>
+                  }
+                  @if (m.missingSkills.length > 0) {
+                    <p class="small"><strong>Mentioned but not on your profile:</strong> {{ m.missingSkills.join(', ') }}</p>
+                  }
+                </section>
+              }
               <p class="muted small">Text copied from the employer's posting. It is shown as plain text and never acted on.</p>
               <div class="description">{{ d.description || 'No description provided.' }}</div>
               @if (d.experienceYearsHint !== null) {

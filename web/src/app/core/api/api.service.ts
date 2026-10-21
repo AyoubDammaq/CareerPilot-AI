@@ -12,6 +12,7 @@ import {
   JobSummaryDto,
   LoginResponse,
   PagedResult,
+  RescoreResult,
   ProfileDto,
   SearchRunDto,
   UserDecision,
@@ -83,6 +84,10 @@ export class ApiService {
 
   getJob(id: string): Observable<JobDetailDto> {
     return this.http.get<JobDetailDto>(`${this.base}/jobs/${id}`);
+  }
+
+  rescore(): Observable<RescoreResult> {
+    return this.http.post<RescoreResult>(`${this.base}/jobs/rescore`, {});
   }
 
   setDecision(id: string, decision: UserDecision): Observable<JobSummaryDto> {

@@ -80,6 +80,8 @@ export interface JobSummaryDto {
   sourceUrl: string;
   applyUrl: string;
   sources: string[];
+  matchScore: number | null;
+  matchTier: MatchTier | null;
 }
 
 export interface PostingDto {
@@ -95,6 +97,7 @@ export interface JobDetailDto {
   description: string;
   experienceYearsHint: number | null;
   postings: PostingDto[];
+  match: MatchResult | null;
 }
 
 export interface PagedResult<T> {
@@ -112,7 +115,34 @@ export interface JobFilters {
   geoFit?: string;
   decision?: string;
   relevantOnly?: boolean;
+  minScore?: number;
   sort?: string;
   page?: number;
   pageSize?: number;
+}
+
+export type MatchTier = 'Strong' | 'Good' | 'Possible' | 'Weak';
+
+export interface MatchComponent {
+  key: string;
+  label: string;
+  maxPoints: number;
+  points: number;
+  known: boolean;
+  note: string;
+}
+
+export interface MatchResult {
+  score: number;
+  tier: MatchTier;
+  confidence: number;
+  components: MatchComponent[];
+  matchedSkills: string[];
+  missingSkills: string[];
+  warnings: string[];
+}
+
+export interface RescoreResult {
+  scored: number;
+  profileMissing: boolean;
 }

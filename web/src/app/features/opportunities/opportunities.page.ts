@@ -26,6 +26,8 @@ export class OpportunitiesPage {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly actionError = signal<string | null>(null);
+  readonly rescoring = signal(false);
+  readonly notice = signal<string | null>(null);
 
   readonly details = signal<Record<string, JobDetailDto | 'loading' | 'error'>>({});
   readonly open = signal<Set<string>>(new Set());
@@ -37,7 +39,8 @@ export class OpportunitiesPage {
     geoFit: new FormControl('', { nonNullable: true }),
     status: new FormControl('', { nonNullable: true }),
     decision: new FormControl('', { nonNullable: true }),
-    sort: new FormControl('newest', { nonNullable: true }),
+    sort: new FormControl('score', { nonNullable: true }),
+    minScore: new FormControl('', { nonNullable: true }),
     showFiltered: new FormControl(false, { nonNullable: true }),
   });
 
@@ -63,6 +66,7 @@ export class OpportunitiesPage {
       status: v.status,
       decision: v.decision,
       sort: v.sort,
+      minScore: v.minScore ? Number(v.minScore) : undefined,
       relevantOnly: !v.showFiltered,
       page: this.page(),
       pageSize: PAGE_SIZE,
@@ -90,6 +94,26 @@ export class OpportunitiesPage {
     if (next < 1 || next > this.pages) return;
     this.page.set(next);
     this.load();
+  }
+
+  rescore(): void {
+    this.rescoring.set(true);
+    this.actionError.set(null);
+    this.notice.set(null);
+    this.api.rescore().subscribe({
+      next: (r) => {
+        this.rescoring.set(false);
+        this.notice.set(
+          r.profileMissing ? 'Create your profile first: scores compare jobs with it.' : `Re-scored ${r.scored} ${r.scored === 1 ? 'job' : 'jobs'} with your current profile.`,
+        );
+        this.details.set({});
+        this.load();
+      },
+      error: (e: unknown) => {
+        this.rescoring.set(false);
+        this.actionError.set(problemMessage(e, 'Could not re-score the jobs.'));
+      },
+    });
   }
 
   clearFilters(): void {
@@ -153,6 +177,10 @@ export class OpportunitiesPage {
       default:
         return 'Outside your target countries';
     }
+  }
+
+  pct(c: { points: number; maxPoints: number }): number {
+    return c.maxPoints <= 0 ? 0 : Math.round((c.points / c.maxPoints) * 100);
   }
 
   salary(job: JobSummaryDto): string | null {
