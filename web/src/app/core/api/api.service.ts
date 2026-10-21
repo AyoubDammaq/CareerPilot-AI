@@ -7,6 +7,7 @@ import {
   CompanyInput,
   CompanyTestResult,
   DashboardDto,
+  JobAnalysisDto,
   JobDetailDto,
   JobFilters,
   JobSummaryDto,
@@ -84,6 +85,10 @@ export class ApiService {
 
   getJob(id: string): Observable<JobDetailDto> {
     return this.http.get<JobDetailDto>(`${this.base}/jobs/${id}`);
+  }
+
+  analyzeJob(id: string, refresh = false): Observable<JobAnalysisDto> {
+    return this.http.post<JobAnalysisDto>(`${this.base}/jobs/${id}/analysis`, {}, { params: refresh ? { refresh: true } : {} });
   }
 
   rescore(): Observable<RescoreResult> {

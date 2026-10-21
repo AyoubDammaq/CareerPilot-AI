@@ -228,6 +228,48 @@
                   }
                 </section>
               }
+              @if (d.analysis; as a) {
+                <section class="ai" aria-label="AI analysis">
+                  <h3>AI analysis</h3>
+                  <p class="muted small">
+                    Written by {{ a.model }} on {{ a.generatedAt | date: 'd MMM y' }} from your profile and this posting. It is a suggestion to read critically; it does not change your score or anything else.
+                  </p>
+                  <p>{{ a.summary }}</p>
+                  @if (a.strengths.length > 0) {
+                    <p class="small"><strong>Strengths</strong></p>
+                    <ul>@for (x of a.strengths; track x) { <li>{{ x }}</li> }</ul>
+                  }
+                  @if (a.gaps.length > 0) {
+                    <p class="small"><strong>Gaps</strong></p>
+                    <ul>@for (x of a.gaps; track x) { <li>{{ x }}</li> }</ul>
+                  }
+                  @if (a.redFlags.length > 0) {
+                    <p class="small"><strong>Red flags</strong></p>
+                    <ul>@for (x of a.redFlags; track x) { <li>{{ x }}</li> }</ul>
+                  }
+                  @if (a.questionsToAsk.length > 0) {
+                    <p class="small"><strong>Questions to ask</strong></p>
+                    <ul>@for (x of a.questionsToAsk; track x) { <li>{{ x }}</li> }</ul>
+                  }
+                  @if (d.aiAvailable) {
+                    <button type="button" class="btn btn-small" (click)="analyse(job, true)" [disabled]="isAnalysing(job)">
+                      {{ isAnalysing(job) ? 'Analysing…' : 'Analyse again' }}
+                    </button>
+                  }
+                </section>
+              } @else if (d.aiAvailable) {
+                <section class="ai">
+                  <button type="button" class="btn btn-small" (click)="analyse(job)" [disabled]="isAnalysing(job)">
+                    {{ isAnalysing(job) ? 'Analysing…' : 'Analyse with AI' }}
+                  </button>
+                  <p class="muted small">Sends this posting's text and the key facts of your profile (no email or phone) to your configured AI provider.</p>
+                </section>
+              } @else {
+                <p class="muted small">AI analysis is not configured on this server.</p>
+              }
+              @if (analysisErrors()[job.id]) {
+                <p class="alert alert-error" role="alert">{{ analysisErrors()[job.id] }}</p>
+              }
               <p class="muted small">Text copied from the employer's posting. It is shown as plain text and never acted on.</p>
               <div class="description">{{ d.description || 'No description provided.' }}</div>
               @if (d.experienceYearsHint !== null) {

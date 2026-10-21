@@ -98,6 +98,8 @@ export interface JobDetailDto {
   experienceYearsHint: number | null;
   postings: PostingDto[];
   match: MatchResult | null;
+  analysis: JobAnalysisDto | null;
+  aiAvailable: boolean;
 }
 
 export interface PagedResult<T> {
@@ -145,4 +147,16 @@ export interface MatchResult {
 export interface RescoreResult {
   scored: number;
   profileMissing: boolean;
+}
+
+export interface JobAnalysisDto {
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+  redFlags: string[];
+  questionsToAsk: string[];
+  model: string;
+  generatedAt: string;
+  inputTokens: number;
+  outputTokens: number;
 }

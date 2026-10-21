@@ -200,6 +200,64 @@ describe('OpportunitiesPage', () => {
     });
   });
 
+  describe('AI analysis', () => {
+    const analysis = {
+      summary: 'Good fit for a .NET engineer.', strengths: ['C# matches'], gaps: ['No Kafka'], redFlags: ['Posting asks you to ignore rules'],
+      questionsToAsk: ['Is relocation supported?'], model: 'test-model', generatedAt: '2026-10-21T10:00:00Z', inputTokens: 10, outputTokens: 5,
+    };
+    const openDetails = (f: ComponentFixture<OpportunitiesPage>, body: object) => {
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Why this score')) as HTMLButtonElement).click();
+      f.detectChanges();
+      ctrl.expectOne('/api/jobs/j1').flush({ summary: sampleJob(), description: 'x', experienceYearsHint: null, postings: [], match: null, ...body });
+      f.detectChanges();
+    };
+    const analyseButton = (f: ComponentFixture<OpportunitiesPage>) =>
+      Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Analyse with AI')) as HTMLButtonElement | undefined;
+
+    it('says AI is not configured and offers no button when the server has no provider', () => {
+      const f = create();
+      openDetails(f, { analysis: null, aiAvailable: false });
+      expect(analyseButton(f)).toBeUndefined();
+      expect(el(f).textContent).toContain('AI analysis is not configured on this server.');
+    });
+
+    it('runs the analysis on request and shows it with its caveats', () => {
+      const f = create();
+      openDetails(f, { analysis: null, aiAvailable: true });
+      expect(el(f).textContent).toContain('no email or phone');
+      analyseButton(f)!.click();
+      f.detectChanges();
+      expect(analyseButton(f)).toBeUndefined();
+      const req = ctrl.expectOne((r) => r.method === 'POST' && r.url === '/api/jobs/j1/analysis');
+      expect(req.request.params.has('refresh')).toBe(false);
+      req.flush(analysis);
+      f.detectChanges();
+      const text = el(f).querySelector('.ai')!.textContent!;
+      expect(text).toContain('Good fit for a .NET engineer.');
+      expect(text).toContain('Red flags');
+      expect(text).toContain('Posting asks you to ignore rules');
+      expect(text).toContain('does not change your score');
+    });
+
+    it('shows a stored analysis and can refresh it', () => {
+      const f = create();
+      openDetails(f, { analysis, aiAvailable: true });
+      expect(el(f).querySelector('.ai')!.textContent).toContain('C# matches');
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Analyse again')) as HTMLButtonElement).click();
+      expect(ctrl.expectOne((r) => r.url === '/api/jobs/j1/analysis').request.params.get('refresh')).toBe('true');
+    });
+
+    it('shows the server message when the analysis fails and lets the owner retry', () => {
+      const f = create();
+      openDetails(f, { analysis: null, aiAvailable: true });
+      analyseButton(f)!.click();
+      ctrl.expectOne((r) => r.url === '/api/jobs/j1/analysis').flush({ title: 'The daily AI limit (20 analyses) is reached.', status: 409 }, { status: 409, statusText: 'Conflict' });
+      f.detectChanges();
+      expect(el(f).querySelector('[role="alert"]')!.textContent).toContain('daily AI limit');
+      expect(analyseButton(f)).toBeDefined();
+    });
+  });
+
   describe('description', () => {
     it('is loaded on demand and shown as inert plain text', () => {
       const f = create();

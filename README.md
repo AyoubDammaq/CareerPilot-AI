@@ -36,3 +36,11 @@ CI (`.github/workflows/ci.yml`) runs all of the above plus production builds and
 
 ## Database migrations
 No migration is committed yet. Run the **Generate EF migration** workflow on GitHub (or `dotnet ef migrations add InitialCreate --project src/CareerPilot.Infrastructure --startup-project src/CareerPilot.API --output-dir Persistence/Migrations`) and commit the result.
+
+
+## Optional: AI job analysis
+Off by default. To enable, set environment variables for the API (never commit keys):
+`Llm__Provider=Anthropic` (or `OpenAiCompatible`), `Llm__Model=<model id>`, `Llm__ApiKey=<key>`.
+For a local model via Ollama: `Llm__Provider=OpenAiCompatible`, `Llm__Model=<local model>`, no key, default URL `http://localhost:11434/v1`.
+Cost controls: `Llm__DailyCallLimit` (default 20 new analyses per UTC day), `Llm__MaxOutputTokens` (800), `Llm__MaxPostingChars` (6000). Results are cached per job.
+Scoring weights can be tuned with `Scoring__Skills`, `Scoring__Title`, and so on (they are rescaled to 100).

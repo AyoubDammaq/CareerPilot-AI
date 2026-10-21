@@ -5,7 +5,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
-import { GeoFit, JobDetailDto, JobFilters, JobSummaryDto, UserDecision } from '../../core/models';
+import { GeoFit, JobAnalysisDto, JobDetailDto, JobFilters, JobSummaryDto, UserDecision } from '../../core/models';
 import { problemMessage } from '../../shared/http-error';
 
 const PAGE_SIZE = 20;
@@ -27,6 +27,8 @@ export class OpportunitiesPage {
   readonly error = signal<string | null>(null);
   readonly actionError = signal<string | null>(null);
   readonly rescoring = signal(false);
+  readonly analysing = signal<Set<string>>(new Set());
+  readonly analysisErrors = signal<Record<string, string>>({});
   readonly notice = signal<string | null>(null);
 
   readonly details = signal<Record<string, JobDetailDto | 'loading' | 'error'>>({});
@@ -177,6 +179,36 @@ export class OpportunitiesPage {
       default:
         return 'Outside your target countries';
     }
+  }
+
+  analyse(job: JobSummaryDto, refresh = false): void {
+    this.analysing.update((s) => new Set(s).add(job.id));
+    this.analysisErrors.update((e) => ({ ...e, [job.id]: '' }));
+    this.api.analyzeJob(job.id, refresh).subscribe({
+      next: (a: JobAnalysisDto) => {
+        this.analysing.update((s) => {
+          const n = new Set(s);
+          n.delete(job.id);
+          return n;
+        });
+        this.details.update((all) => {
+          const d = all[job.id];
+          return d && d !== 'loading' && d !== 'error' ? { ...all, [job.id]: { ...d, analysis: a } } : all;
+        });
+      },
+      error: (e: unknown) => {
+        this.analysing.update((s) => {
+          const n = new Set(s);
+          n.delete(job.id);
+          return n;
+        });
+        this.analysisErrors.update((all) => ({ ...all, [job.id]: problemMessage(e, 'The AI analysis failed.') }));
+      },
+    });
+  }
+
+  isAnalysing(job: JobSummaryDto): boolean {
+    return this.analysing().has(job.id);
   }
 
   pct(c: { points: number; maxPoints: number }): number {
