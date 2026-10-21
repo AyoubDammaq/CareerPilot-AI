@@ -39,6 +39,13 @@ jobs:
           for f in $(find . -name '*.trx'); do
             c=$(grep -o '<Counters [^>]*>' "$f")
             echo "::notice title=$(basename $f)::$c"
+            python3 - "$f" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          for r in ET.parse(sys.argv[1]).getroot().iter():
+              if r.tag.endswith('UnitTestResult') and r.get('outcome') == 'Failed':
+                  m = ''.join(x.text or '' for x in r.iter() if x.tag.endswith('Message'))
+                  print('::error title=FAILED TEST::%s :: %s' % (r.get('testName'), ' '.join(m.split())[:500]))
+          PY
             echo "$c" | grep -q 'executed="0"' && { echo "No tests executed in $f"; exit 1; }
             echo "$c" | grep -qE 'notExecuted="[1-9]' && { echo "Skipped tests in $f"; exit 1; }
           done
