@@ -71,6 +71,12 @@ namespace CareerPilot.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AiAnalysisJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("AiAnalyzedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset?>("ApplicationDeadline")
                         .HasColumnType("timestamp with time zone");
 
