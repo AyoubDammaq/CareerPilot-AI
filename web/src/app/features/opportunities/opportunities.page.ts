@@ -5,7 +5,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
-import { GeoFit, JobAnalysisDto, JobDetailDto, JobFilters, JobSummaryDto, UserDecision } from '../../core/models';
+import { DocumentDto, GeoFit, JobAnalysisDto, JobDetailDto, JobFilters, JobSummaryDto, UserDecision } from '../../core/models';
 import { problemMessage } from '../../shared/http-error';
 
 const PAGE_SIZE = 20;
@@ -27,6 +27,9 @@ export class OpportunitiesPage {
   readonly error = signal<string | null>(null);
   readonly actionError = signal<string | null>(null);
   readonly rescoring = signal(false);
+  readonly cvs = signal<Record<string, DocumentDto>>({});
+  readonly cvBusy = signal<Set<string>>(new Set());
+  readonly cvErrors = signal<Record<string, string>>({});
   readonly analysing = signal<Set<string>>(new Set());
   readonly analysisErrors = signal<Record<string, string>>({});
   readonly notice = signal<string | null>(null);
@@ -204,6 +207,57 @@ export class OpportunitiesPage {
         });
         this.analysisErrors.update((all) => ({ ...all, [job.id]: problemMessage(e, 'The AI analysis failed.') }));
       },
+    });
+  }
+
+  prepareCv(job: JobSummaryDto): void {
+    this.setCvBusy(job.id, true);
+    this.cvErrors.update((e) => ({ ...e, [job.id]: '' }));
+    this.api.createCv(job.id).subscribe({
+      next: (doc) => {
+        this.setCvBusy(job.id, false);
+        this.cvs.update((all) => ({ ...all, [job.id]: doc }));
+      },
+      error: (e: unknown) => {
+        this.setCvBusy(job.id, false);
+        this.cvErrors.update((all) => ({ ...all, [job.id]: problemMessage(e, 'Could not prepare the CV.') }));
+      },
+    });
+  }
+
+  downloadCv(job: JobSummaryDto): void {
+    const doc = this.cvs()[job.id];
+    if (!doc) return;
+    this.setCvBusy(job.id, true);
+    this.api.downloadDocument(doc.id).subscribe({
+      next: (res) => {
+        this.setCvBusy(job.id, false);
+        if (!res.body) return;
+        const name = /filename="?([A-Za-z0-9._-]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'CV.docx';
+        const url = URL.createObjectURL(res.body);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (e: unknown) => {
+        this.setCvBusy(job.id, false);
+        this.cvErrors.update((all) => ({ ...all, [job.id]: problemMessage(e, 'Could not download the CV.') }));
+      },
+    });
+  }
+
+  isCvBusy(job: JobSummaryDto): boolean {
+    return this.cvBusy().has(job.id);
+  }
+
+  private setCvBusy(id: string, busy: boolean): void {
+    this.cvBusy.update((s) => {
+      const n = new Set(s);
+      if (busy) n.add(id);
+      else n.delete(id);
+      return n;
     });
   }
 

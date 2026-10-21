@@ -258,6 +258,74 @@ describe('OpportunitiesPage', () => {
     });
   });
 
+  describe('tailored CV', () => {
+    const cvDoc = (over: object = {}) => ({
+      id: 'd1', jobId: 'j1', kind: 'Cv', title: 'CV', createdAt: '2026-10-21T10:00:00Z', contentHash: 'abcdef1234567890', stale: false,
+      content: { fullName: 'Ayoub Test', headline: '', email: 'a@example.test', phone: null, location: '', links: [], summary: '', experience: [], education: [], skills: ['C#'], projects: [], languages: [] },
+      report: { omitted: ['Skill "Kafka" is not marked verified.'], notOnCv: ['Kafka'], warnings: ['No work experience is marked verified, so the CV has no experience section.'] },
+      ...over,
+    });
+    const open = (f: ComponentFixture<OpportunitiesPage>) => {
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Why this score')) as HTMLButtonElement).click();
+      f.detectChanges();
+      ctrl.expectOne('/api/jobs/j1').flush({ summary: sampleJob(), description: 'x', experienceYearsHint: null, postings: [], match: null, analysis: null, aiAvailable: false });
+      f.detectChanges();
+    };
+    const btn = (f: ComponentFixture<OpportunitiesPage>, text: string) =>
+      Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes(text)) as HTMLButtonElement | undefined;
+
+    it('states what the CV is built from before anything is prepared', () => {
+      const f = create();
+      open(f);
+      expect(el(f).querySelector('.cv')!.textContent).toContain('only from the work, skills and projects you marked verified');
+      expect(btn(f, 'Download .docx')).toBeUndefined();
+    });
+
+    it('prepares the CV and shows warnings, what was left out and what the posting asks for but was not added', () => {
+      const f = create();
+      open(f);
+      btn(f, 'Prepare CV for this job')!.click();
+      f.detectChanges();
+      ctrl.expectOne((r) => r.method === 'POST' && r.url === '/api/jobs/j1/documents/cv').flush(cvDoc(), { status: 201, statusText: 'Created' });
+      f.detectChanges();
+      const text = el(f).querySelector('.cv')!.textContent!;
+      expect(text).toContain('No work experience is marked verified');
+      expect(text).toContain('Skills shown: C#');
+      expect(text).toContain('Asked for in the posting but not on the CV (not added): Kafka');
+      expect(text).toContain('1 items left out');
+      expect(text).toContain('abcdef123456');
+      expect(btn(f, 'Download .docx')).toBeDefined();
+    });
+
+    it('downloads through the API (so the token is sent)', () => {
+      const f = create();
+      open(f);
+      btn(f, 'Prepare CV for this job')!.click();
+      ctrl.expectOne((r) => r.url === '/api/jobs/j1/documents/cv').flush(cvDoc());
+      f.detectChanges();
+      const create$ = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+      const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+      btn(f, 'Download .docx')!.click();
+      const req = ctrl.expectOne('/api/documents/d1/download');
+      expect(req.request.responseType).toBe('blob');
+      req.flush(new Blob(['x']), { headers: { 'Content-Disposition': 'attachment; filename=CV-Ayoub-Test-abcd1234.docx' } });
+      expect(create$).toHaveBeenCalled();
+      expect(revoke).toHaveBeenCalledWith('blob:x');
+      create$.mockRestore();
+      revoke.mockRestore();
+    });
+
+    it('shows the server message when preparing fails', () => {
+      const f = create();
+      open(f);
+      btn(f, 'Prepare CV for this job')!.click();
+      ctrl.expectOne((r) => r.url === '/api/jobs/j1/documents/cv').flush({ title: 'Create your profile first: the CV is built from it.', status: 409 }, { status: 409, statusText: 'Conflict' });
+      f.detectChanges();
+      expect(el(f).querySelector('.cv [role="alert"]')!.textContent).toContain('Create your profile first');
+      expect(btn(f, 'Prepare CV for this job')).toBeDefined();
+    });
+  });
+
   describe('description', () => {
     it('is loaded on demand and shown as inert plain text', () => {
       const f = create();

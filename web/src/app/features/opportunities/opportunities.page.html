@@ -270,6 +270,45 @@
               @if (analysisErrors()[job.id]) {
                 <p class="alert alert-error" role="alert">{{ analysisErrors()[job.id] }}</p>
               }
+              <section class="cv" aria-label="Tailored CV">
+                <h3>Tailored CV</h3>
+                <p class="muted small">
+                  Built only from the work, skills and projects you marked verified in your profile, reordered for this job. Nothing is rewritten or added, and nothing is sent anywhere. Review it before you use it.
+                </p>
+                @if (cvs()[job.id]; as cv) {
+                  @for (w of cv.report?.warnings ?? []; track w) {
+                    <p class="alert alert-error small">{{ w }}</p>
+                  }
+                  <p class="small">
+                    <strong>{{ cv.content.fullName || 'No name yet' }}</strong>: {{ cv.content.experience.length }} experience,
+                    {{ cv.content.skills.length }} skills, {{ cv.content.projects.length }} projects, {{ cv.content.education.length }} education,
+                    {{ cv.content.languages.length }} languages. Fingerprint {{ cv.contentHash.slice(0, 12) }}.
+                  </p>
+                  @if (cv.content.skills.length > 0) {
+                    <p class="small"><strong>Skills shown:</strong> {{ cv.content.skills.join(', ') }}</p>
+                  }
+                  @if ((cv.report?.notOnCv ?? []).length > 0) {
+                    <p class="small"><strong>Asked for in the posting but not on the CV (not added):</strong> {{ (cv.report?.notOnCv ?? []).join(', ') }}</p>
+                  }
+                  @if ((cv.report?.omitted ?? []).length > 0) {
+                    <details>
+                      <summary class="small">{{ (cv.report?.omitted ?? []).length }} items left out</summary>
+                      <ul class="small">@for (o of cv.report?.omitted ?? []; track o) { <li>{{ o }}</li> }</ul>
+                    </details>
+                  }
+                  <div class="row">
+                    <button type="button" class="btn btn-small" (click)="downloadCv(job)" [disabled]="isCvBusy(job)">Download .docx</button>
+                    <button type="button" class="btn btn-small" (click)="prepareCv(job)" [disabled]="isCvBusy(job)">Prepare again</button>
+                  </div>
+                } @else {
+                  <button type="button" class="btn btn-small" (click)="prepareCv(job)" [disabled]="isCvBusy(job)">
+                    {{ isCvBusy(job) ? 'Preparing…' : 'Prepare CV for this job' }}
+                  </button>
+                }
+                @if (cvErrors()[job.id]) {
+                  <p class="alert alert-error" role="alert">{{ cvErrors()[job.id] }}</p>
+                }
+              </section>
               <p class="muted small">Text copied from the employer's posting. It is shown as plain text and never acted on.</p>
               <div class="description">{{ d.description || 'No description provided.' }}</div>
               @if (d.experienceYearsHint !== null) {

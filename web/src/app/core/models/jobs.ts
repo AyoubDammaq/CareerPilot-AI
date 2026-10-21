@@ -160,3 +160,41 @@ export interface JobAnalysisDto {
   inputTokens: number;
   outputTokens: number;
 }
+
+export interface CvExperience { title: string; company: string; location: string; period: string; description: string; achievements: string[] }
+export interface CvEducation { degree: string; field: string; institution: string; period: string }
+export interface CvProject { name: string; description: string; url: string | null; technologies: string[]; results: string[] }
+export interface CvLanguage { name: string; level: string }
+
+export interface CvContent {
+  fullName: string;
+  headline: string;
+  email: string;
+  phone: string | null;
+  location: string;
+  links: string[];
+  summary: string;
+  experience: CvExperience[];
+  education: CvEducation[];
+  skills: string[];
+  projects: CvProject[];
+  languages: CvLanguage[];
+}
+
+export interface CvReport {
+  omitted: string[];
+  notOnCv: string[];
+  warnings: string[];
+}
+
+export interface DocumentDto {
+  id: string;
+  jobId: string;
+  kind: string;
+  title: string;
+  createdAt: string;
+  contentHash: string;
+  stale: boolean;
+  content: CvContent;
+  report: CvReport | null;
+}

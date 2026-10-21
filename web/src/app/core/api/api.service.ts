@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -7,6 +7,7 @@ import {
   CompanyInput,
   CompanyTestResult,
   DashboardDto,
+  DocumentDto,
   JobAnalysisDto,
   JobDetailDto,
   JobFilters,
@@ -89,6 +90,15 @@ export class ApiService {
 
   analyzeJob(id: string, refresh = false): Observable<JobAnalysisDto> {
     return this.http.post<JobAnalysisDto>(`${this.base}/jobs/${id}/analysis`, {}, { params: refresh ? { refresh: true } : {} });
+  }
+
+  createCv(jobId: string): Observable<DocumentDto> {
+    return this.http.post<DocumentDto>(`${this.base}/jobs/${jobId}/documents/cv`, {});
+  }
+
+  /** Downloads through HttpClient so the bearer token is sent (a plain link would not carry it). */
+  downloadDocument(id: string): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.base}/documents/${id}/download`, { observe: 'response', responseType: 'blob' });
   }
 
   rescore(): Observable<RescoreResult> {

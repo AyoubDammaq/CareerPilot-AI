@@ -176,3 +176,4 @@ textarea { resize: vertical; }
 .breakdown { list-style: none; padding: 0; display: grid; gap: .5rem; }
 .breakdown meter { width: 100%; height: .6rem; }
 .ai { margin-bottom: 1rem; padding: .75rem; border: 1px dashed var(--line); border-radius: var(--radius); }
+.cv { margin-bottom: 1rem; padding: .75rem; border: 1px solid var(--line); border-radius: var(--radius); }
