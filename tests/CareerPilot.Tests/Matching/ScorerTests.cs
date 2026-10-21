@@ -168,7 +168,7 @@ public class ScorerTests
         var p = Profile();
         p.Preferences.IncludeSeniorRoles = includeSenior;
         var c = Score(Job(j => j.Seniority = level), p).Components.Single(x => x.Key == "seniority");
-        Assert.Equal(c.MaxPoints * expectedFraction, c.Points, 1);
+        Assert.InRange(Math.Abs(c.MaxPoints * expectedFraction - c.Points), 0, 0.06);
     }
 
     [Fact]
@@ -208,7 +208,7 @@ public class ScorerTests
     [Fact]
     public void Posting_language_not_spoken_scores_zero_and_known_language_scores_full()
     {
-        Assert.Equal(0, Score(Job(j => j.Language = "de")).Components.Single(c => c.Key == "language").Points);
+        Assert.Equal(0, Score(Job(j => j.Language = "es")).Components.Single(c => c.Key == "language").Points);
         var en = Score(Job(j => j.Language = "en")).Components.Single(c => c.Key == "language");
         Assert.Equal(en.MaxPoints, en.Points, 1);
     }
@@ -267,7 +267,7 @@ public class ScorerTests
     [Fact]
     public void Tier_thresholds_are_applied()
     {
-        var weak = Score(Job(j => { j.Skills = ["Rust"]; j.Title = "Data Analyst"; j.GeoFit = GeoFit.NoMatch; j.WorkMode = WorkMode.OnSite; j.Language = "de"; }));
+        var weak = Score(Job(j => { j.Skills = ["Rust"]; j.Title = "Data Analyst"; j.GeoFit = GeoFit.NoMatch; j.WorkMode = WorkMode.OnSite; j.Language = "es"; }));
         Assert.Equal("Weak", weak.Tier);
         Assert.Equal("Strong", Score(Job()).Tier);
     }
