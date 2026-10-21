@@ -23,6 +23,53 @@ namespace CareerPilot.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CareerPilot.Domain.Applications.JobApplication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ApprovedContentHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("CanonicalJobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CoverLetterDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CvDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("SubmissionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CanonicalJobId")
+                        .IsUnique();
+
+                    b.ToTable("job_applications", (string)null);
+                });
+
             modelBuilder.Entity("CareerPilot.Domain.Audit.AuditEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -804,6 +851,15 @@ namespace CareerPilot.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserProfileId", "Position");
 
                     b.ToTable("work_experiences", (string)null);
+                });
+
+            modelBuilder.Entity("CareerPilot.Domain.Applications.JobApplication", b =>
+                {
+                    b.HasOne("CareerPilot.Domain.Jobs.JobListing", null)
+                        .WithMany()
+                        .HasForeignKey("CanonicalJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CareerPilot.Domain.Documents.GeneratedDocument", b =>
