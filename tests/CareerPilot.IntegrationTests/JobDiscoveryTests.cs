@@ -156,6 +156,39 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
     }
 
     [RequiresDatabaseFact]
+    public async Task A_cv_can_be_prepared_previewed_and_downloaded_and_never_invents_unverified_facts()
+    {
+        using var client = await api.CreateFakeConnectorClientAsync();
+        await RunSearchAsync(client);
+        var list = (await client.GetFromJsonAsync<PagedResult<JobSummaryDto>>("/api/jobs?relevantOnly=false&pageSize=1", Json))!;
+        var jobId = list.Items[0].Id;
+
+        var created = await client.PostAsync($"/api/jobs/{jobId}/documents/cv", null);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var doc = (await created.Content.ReadFromJsonAsync<CareerPilot.Application.Documents.DocumentDto>(Json))!;
+        Assert.Equal(64, doc.ContentHash.Length);
+        Assert.Equal(jobId, doc.JobId);
+        Assert.NotNull(doc.Report);
+        // The starter profile has nothing verified yet, so the CV must not contain experience or skills.
+        Assert.Empty(doc.Content.Experience);
+        Assert.Empty(doc.Content.Skills);
+        Assert.NotEmpty(doc.Report!.Warnings);
+
+        var again = (await client.GetFromJsonAsync<CareerPilot.Application.Documents.DocumentDto>($"/api/documents/{doc.Id}", Json))!;
+        Assert.Equal(doc.ContentHash, again.ContentHash);
+
+        var file = await client.GetAsync($"/api/documents/{doc.Id}/download");
+        Assert.Equal(HttpStatusCode.OK, file.StatusCode);
+        Assert.Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document", file.Content.Headers.ContentType!.MediaType);
+        var bytes = await file.Content.ReadAsByteArrayAsync();
+        Assert.Equal((byte)'P', bytes[0]);
+
+        using var anon = api.CreateAnonymousClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync($"/api/documents/{doc.Id}/download")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/documents/{Guid.NewGuid()}")).StatusCode);
+    }
+
+    [RequiresDatabaseFact]
     public async Task Filters_sorting_paging_and_detail_work()
     {
         using var client = await api.CreateFakeConnectorClientAsync();

@@ -1,5 +1,7 @@
 using CareerPilot.Application.Abstractions;
 using CareerPilot.Application.Ai;
+using CareerPilot.Application.Documents;
+using CareerPilot.Infrastructure.Documents;
 using CareerPilot.Infrastructure.Ai;
 using CareerPilot.Application.Jobs;
 using CareerPilot.Infrastructure.Jobs;
@@ -22,6 +24,8 @@ public static class DependencyInjection
         services.AddScoped<IProfileStore, EfProfileStore>();
         services.AddScoped<IAuditLog, EfAuditLog>();
         services.AddScoped<IJobStore, EfJobStore>();
+        services.AddScoped<IDocumentStore, EfDocumentStore>();
+        services.AddSingleton<ICvRenderer, DocxCvRenderer>();
 
         services.AddHttpClient<AnthropicLlmClient>((sp, c) => c.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<LlmOptions>().TimeoutSeconds));
         services.AddHttpClient<OpenAiCompatibleLlmClient>((sp, c) => c.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<LlmOptions>().TimeoutSeconds));

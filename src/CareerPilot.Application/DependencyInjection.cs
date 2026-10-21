@@ -1,4 +1,5 @@
 using CareerPilot.Application.Ai;
+using CareerPilot.Application.Documents;
 using CareerPilot.Application.Jobs;
 using CareerPilot.Application.Matching;
 using CareerPilot.Application.Profiles;
@@ -14,6 +15,7 @@ public static class DependencyInjection
         services.AddSingleton(scoring ?? new ScoringOptions());
         services.AddSingleton(llm ?? new LlmOptions());
         services.AddScoped<JobAnalysisService>();
+        services.AddScoped<DocumentService>();
         services.AddScoped<MatchingService>();
         services.AddScoped<ProfileService>();
         services.AddScoped<CompanyService>();

@@ -1,5 +1,6 @@
 using CareerPilot.Application.Abstractions;
 using CareerPilot.Application.Ai;
+using CareerPilot.Application.Documents;
 using CareerPilot.Application.Jobs;
 using CareerPilot.Application.Matching;
 using CareerPilot.Domain.Jobs;
@@ -48,6 +49,18 @@ public static class JobEndpoints
         jobs.MapPost("rescore", async (MatchingService m, CancellationToken ct) => Results.Ok(await m.RescoreAllAsync(ct)));
         jobs.MapPost("{id:guid}/analysis", async (Guid id, bool? refresh, JobAnalysisService a, CancellationToken ct) =>
             Results.Ok(await a.AnalyzeAsync(id, refresh ?? false, ct)));
+        jobs.MapPost("{id:guid}/documents/cv", async (Guid id, DocumentService d, CancellationToken ct) =>
+        {
+            var doc = await d.CreateCvAsync(id, ct);
+            return Results.Created($"/api/documents/{doc.Id}", doc);
+        });
+        var documents = app.MapGroup("/api/documents");
+        documents.MapGet("{id:guid}", async (Guid id, DocumentService d, CancellationToken ct) => Results.Ok(await d.GetAsync(id, ct)));
+        documents.MapGet("{id:guid}/download", async (Guid id, DocumentService d, CancellationToken ct) =>
+        {
+            var f = await d.DownloadDocxAsync(id, ct);
+            return Results.File(f.Bytes, f.ContentType, f.FileName);
+        });
         app.MapGet("/api/ai/status", async (JobAnalysisService a, CancellationToken ct) => Results.Ok(await a.StatusAsync(ct)));
         jobs.MapGet("{id:guid}", async (Guid id, JobQueryService s, CancellationToken ct) => Results.Ok(await s.GetAsync(id, ct)));
         jobs.MapPut("{id:guid}/decision", async (Guid id, DecisionInput input, JobQueryService s, CancellationToken ct) =>

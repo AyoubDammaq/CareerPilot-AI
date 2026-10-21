@@ -1,5 +1,6 @@
 using CareerPilot.Domain.Audit;
 using CareerPilot.Domain.Common;
+using CareerPilot.Domain.Documents;
 using CareerPilot.Domain.Jobs;
 using CareerPilot.Domain.Profiles;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ public class CareerPilotDbContext(DbContextOptions<CareerPilotDbContext> options
     public DbSet<JobListing> JobListings => Set<JobListing>();
     public DbSet<JobPosting> JobPostings => Set<JobPosting>();
     public DbSet<SearchRun> SearchRuns => Set<SearchRun>();
+    public DbSet<GeneratedDocument> GeneratedDocuments => Set<GeneratedDocument>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -121,6 +123,17 @@ public class CareerPilotDbContext(DbContextOptions<CareerPilotDbContext> options
             b.Property(x => x.Kind).HasConversion<string>().HasMaxLength(20);
             b.Property(x => x.LastError).HasMaxLength(500);
             b.HasIndex(x => new { x.Kind, x.BoardToken }).IsUnique();
+        });
+
+        modelBuilder.Entity<GeneratedDocument>(b =>
+        {
+            b.ToTable("generated_documents");
+            b.Property(x => x.Title).HasMaxLength(400);
+            b.Property(x => x.ContentJson).HasColumnType("text");
+            b.Property(x => x.ContentHash).HasMaxLength(64);
+            b.Property(x => x.Kind).HasConversion<string>().HasMaxLength(20);
+            b.HasOne<JobListing>().WithMany().HasForeignKey(x => x.JobListingId).OnDelete(DeleteBehavior.Cascade);
+            b.HasIndex(x => x.JobListingId);
         });
 
         modelBuilder.Entity<JobListing>(b =>
