@@ -66,6 +66,49 @@ namespace CareerPilot.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_events", (string)null);
                 });
 
+            modelBuilder.Entity("CareerPilot.Domain.Documents.GeneratedDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ContentJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("JobListingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("ProfileVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobListingId");
+
+                    b.ToTable("generated_documents", (string)null);
+                });
+
             modelBuilder.Entity("CareerPilot.Domain.Jobs.JobListing", b =>
                 {
                     b.Property<Guid>("Id")
@@ -761,6 +804,15 @@ namespace CareerPilot.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserProfileId", "Position");
 
                     b.ToTable("work_experiences", (string)null);
+                });
+
+            modelBuilder.Entity("CareerPilot.Domain.Documents.GeneratedDocument", b =>
+                {
+                    b.HasOne("CareerPilot.Domain.Jobs.JobListing", null)
+                        .WithMany()
+                        .HasForeignKey("JobListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CareerPilot.Domain.Jobs.JobPosting", b =>
