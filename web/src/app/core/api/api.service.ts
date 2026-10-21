@@ -7,6 +7,7 @@ import {
   CompanyInput,
   CompanyTestResult,
   DashboardDto,
+  CoverLetterDto,
   DocumentDto,
   JobAnalysisDto,
   JobDetailDto,
@@ -94,6 +95,14 @@ export class ApiService {
 
   createCv(jobId: string): Observable<DocumentDto> {
     return this.http.post<DocumentDto>(`${this.base}/jobs/${jobId}/documents/cv`, {});
+  }
+
+  draftCoverLetter(jobId: string): Observable<CoverLetterDto> {
+    return this.http.post<CoverLetterDto>(`${this.base}/jobs/${jobId}/documents/cover-letter`, {});
+  }
+
+  reviseCoverLetter(documentId: string, paragraphs: string[]): Observable<CoverLetterDto> {
+    return this.http.post<CoverLetterDto>(`${this.base}/documents/${documentId}/revise`, { paragraphs });
   }
 
   /** Downloads through HttpClient so the bearer token is sent (a plain link would not carry it). */

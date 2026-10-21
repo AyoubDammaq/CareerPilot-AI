@@ -326,6 +326,106 @@ describe('OpportunitiesPage', () => {
     });
   });
 
+  describe('cover letter', () => {
+    const letter = (over: object = {}) => ({
+      id: 'l1', jobId: 'j1', title: 'Cover letter', createdAt: '2026-10-21T10:00:00Z', contentHash: '0123456789abcdef', stale: false,
+      letter: { fullName: 'A', email: 'a@example.test', phone: null, location: '', company: 'Datadog', jobTitle: 'Backend Engineer', greeting: 'Dear Hiring Team,', paragraphs: ['First paragraph.', 'Second paragraph.'], closing: 'Kind regards', source: 'ai:test-model' },
+      claims: { flags: [], clean: true },
+      ...over,
+    });
+    const open = (f: ComponentFixture<OpportunitiesPage>, aiAvailable: boolean) => {
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Why this score')) as HTMLButtonElement).click();
+      f.detectChanges();
+      ctrl.expectOne('/api/jobs/j1').flush({ summary: sampleJob(), description: 'x', experienceYearsHint: null, postings: [], match: null, analysis: null, aiAvailable });
+      f.detectChanges();
+    };
+    const btn = (f: ComponentFixture<OpportunitiesPage>, text: string) =>
+      Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes(text)) as HTMLButtonElement | undefined;
+    const area = (f: ComponentFixture<OpportunitiesPage>) => el(f).querySelector('textarea.letter-text') as HTMLTextAreaElement;
+    const draft = (f: ComponentFixture<OpportunitiesPage>, body: object = letter()) => {
+      btn(f, 'Draft cover letter with AI')!.click();
+      ctrl.expectOne((r) => r.method === 'POST' && r.url === '/api/jobs/j1/documents/cover-letter').flush(body, { status: 201, statusText: 'Created' });
+      f.detectChanges();
+    };
+
+    it('offers no draft button when AI is not configured', () => {
+      const f = create();
+      open(f, false);
+      expect(btn(f, 'Draft cover letter with AI')).toBeUndefined();
+      expect(el(f).querySelector('.letter')!.textContent).toContain('need AI analysis to be configured');
+    });
+
+    it('shows the draft in an editable box with the honest clean-check wording', () => {
+      const f = create();
+      open(f, true);
+      expect(el(f).querySelector('.letter')!.textContent).toContain('every claim is checked against your profile');
+      draft(f);
+      expect(area(f).value).toBe('First paragraph.\n\nSecond paragraph.');
+      const text = el(f).querySelector('.letter')!.textContent!;
+      expect(text).toContain('AI draft (test-model)');
+      expect(text).toContain('does not prove every sentence is true');
+      expect(btn(f, 'Download .docx')!.disabled).toBe(false);
+      expect(btn(f, 'Save my edits and re-check')!.disabled).toBe(true);
+    });
+
+    it('lists every flagged claim prominently', () => {
+      const f = create();
+      open(f, true);
+      draft(f, letter({ claims: { clean: false, flags: [
+        { kind: 'Skill', text: 'Rust', message: '"Rust" is not a skill on your profile.' },
+        { kind: 'Figure', text: '90%', message: 'The figure "90%" does not appear in your verified profile.' },
+      ] } }));
+      const alert = el(f).querySelector('.letter [role="alert"]')!.textContent!;
+      expect(alert).toContain('Check these before using the letter');
+      expect(alert).toContain('"Rust" is not a skill');
+      expect(alert).toContain('90%');
+      expect(el(f).textContent).not.toContain('does not prove every sentence');
+    });
+
+    it('editing blocks the download until the edits are saved and re-checked, then posts the paragraphs', () => {
+      const f = create();
+      open(f, true);
+      draft(f);
+      area(f).value = '  My first.  \n\n\n  My second.\n\nThird.';
+      area(f).dispatchEvent(new Event('input'));
+      f.detectChanges();
+      expect(btn(f, 'Download .docx')!.disabled).toBe(true);
+      expect(el(f).textContent).toContain('Save your edits to re-check them');
+      btn(f, 'Save my edits and re-check')!.click();
+      const req = ctrl.expectOne((r) => r.method === 'POST' && r.url === '/api/documents/l1/revise');
+      expect(req.request.body).toEqual({ paragraphs: ['My first.', 'My second.', 'Third.'] });
+      req.flush(letter({ id: 'l2', contentHash: 'ffffffffffffffff', letter: { ...letter().letter, paragraphs: ['My first.', 'My second.', 'Third.'], source: 'owner' } }), { status: 201, statusText: 'Created' });
+      f.detectChanges();
+      expect(el(f).querySelector('.letter')!.textContent).toContain('Your edited version');
+      expect(btn(f, 'Download .docx')!.disabled).toBe(false);
+    });
+
+    it('downloads the current version through the API', () => {
+      const f = create();
+      open(f, true);
+      draft(f);
+      const create$ = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:l');
+      const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+      btn(f, 'Download .docx')!.click();
+      const req = ctrl.expectOne('/api/documents/l1/download');
+      req.flush(new Blob(['x']), { headers: { 'Content-Disposition': 'attachment; filename=Cover-letter-A-01234567.docx' } });
+      expect(create$).toHaveBeenCalled();
+      create$.mockRestore();
+      revoke.mockRestore();
+    });
+
+    it('shows the server message when drafting is refused', () => {
+      const f = create();
+      open(f, true);
+      btn(f, 'Draft cover letter with AI')!.click();
+      ctrl.expectOne((r) => r.url === '/api/jobs/j1/documents/cover-letter').flush(
+        { title: 'No work, skills or projects are marked verified yet.', status: 409 }, { status: 409, statusText: 'Conflict' });
+      f.detectChanges();
+      expect(el(f).querySelector('.letter [role="alert"]')!.textContent).toContain('marked verified');
+      expect(btn(f, 'Draft cover letter with AI')).toBeDefined();
+    });
+  });
+
   describe('description', () => {
     it('is loaded on demand and shown as inert plain text', () => {
       const f = create();

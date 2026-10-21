@@ -5,7 +5,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { ApiService } from '../../core/api/api.service';
-import { DocumentDto, GeoFit, JobAnalysisDto, JobDetailDto, JobFilters, JobSummaryDto, UserDecision } from '../../core/models';
+import { CoverLetterDto, DocumentDto, GeoFit, JobAnalysisDto, JobDetailDto, JobFilters, JobSummaryDto, UserDecision } from '../../core/models';
 import { problemMessage } from '../../shared/http-error';
 
 const PAGE_SIZE = 20;
@@ -28,6 +28,10 @@ export class OpportunitiesPage {
   readonly actionError = signal<string | null>(null);
   readonly rescoring = signal(false);
   readonly cvs = signal<Record<string, DocumentDto>>({});
+  readonly letters = signal<Record<string, CoverLetterDto>>({});
+  readonly letterText = signal<Record<string, string>>({});
+  readonly letterBusy = signal<Set<string>>(new Set());
+  readonly letterErrors = signal<Record<string, string>>({});
   readonly cvBusy = signal<Set<string>>(new Set());
   readonly cvErrors = signal<Record<string, string>>({});
   readonly analysing = signal<Set<string>>(new Set());
@@ -245,6 +249,85 @@ export class OpportunitiesPage {
         this.setCvBusy(job.id, false);
         this.cvErrors.update((all) => ({ ...all, [job.id]: problemMessage(e, 'Could not download the CV.') }));
       },
+    });
+  }
+
+  draftLetter(job: JobSummaryDto): void {
+    this.setLetterBusy(job.id, true);
+    this.letterErrors.update((e) => ({ ...e, [job.id]: '' }));
+    this.api.draftCoverLetter(job.id).subscribe({
+      next: (l) => this.letterArrived(job.id, l),
+      error: (e: unknown) => this.letterFailed(job.id, e, 'Could not draft the letter.'),
+    });
+  }
+
+  /** Saves the owner's edits as a new version and re-runs the claim check on it. */
+  reviseLetter(job: JobSummaryDto): void {
+    const current = this.letters()[job.id];
+    if (!current) return;
+    const paragraphs = (this.letterText()[job.id] ?? '')
+      .split(/\n\s*\n/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+    this.setLetterBusy(job.id, true);
+    this.letterErrors.update((e) => ({ ...e, [job.id]: '' }));
+    this.api.reviseCoverLetter(current.id, paragraphs).subscribe({
+      next: (l) => this.letterArrived(job.id, l),
+      error: (e: unknown) => this.letterFailed(job.id, e, 'Could not save your edits.'),
+    });
+  }
+
+  onLetterInput(job: JobSummaryDto, event: Event): void {
+    const value = (event.target as HTMLTextAreaElement).value;
+    this.letterText.update((t) => ({ ...t, [job.id]: value }));
+  }
+
+  downloadLetter(job: JobSummaryDto): void {
+    const letter = this.letters()[job.id];
+    if (!letter) return;
+    this.setLetterBusy(job.id, true);
+    this.api.downloadDocument(letter.id).subscribe({
+      next: (res) => {
+        this.setLetterBusy(job.id, false);
+        if (!res.body) return;
+        const name = /filename="?([A-Za-z0-9._-]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'Cover-letter.docx';
+        const url = URL.createObjectURL(res.body);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: (e: unknown) => this.letterFailed(job.id, e, 'Could not download the letter.'),
+    });
+  }
+
+  letterEdited(job: JobSummaryDto): boolean {
+    const l = this.letters()[job.id];
+    return !!l && (this.letterText()[job.id] ?? '') !== l.letter.paragraphs.join('\n\n');
+  }
+
+  isLetterBusy(job: JobSummaryDto): boolean {
+    return this.letterBusy().has(job.id);
+  }
+
+  private letterArrived(id: string, l: CoverLetterDto): void {
+    this.setLetterBusy(id, false);
+    this.letters.update((all) => ({ ...all, [id]: l }));
+    this.letterText.update((t) => ({ ...t, [id]: l.letter.paragraphs.join('\n\n') }));
+  }
+
+  private letterFailed(id: string, e: unknown, fallback: string): void {
+    this.setLetterBusy(id, false);
+    this.letterErrors.update((all) => ({ ...all, [id]: problemMessage(e, fallback) }));
+  }
+
+  private setLetterBusy(id: string, busy: boolean): void {
+    this.letterBusy.update((s) => {
+      const n = new Set(s);
+      if (busy) n.add(id);
+      else n.delete(id);
+      return n;
     });
   }
 

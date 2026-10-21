@@ -198,3 +198,30 @@ export interface DocumentDto {
   content: CvContent;
   report: CvReport | null;
 }
+
+export interface ClaimFlag { kind: 'Skill' | 'UnverifiedSkill' | 'Figure' | 'Experience'; text: string; message: string }
+export interface ClaimCheck { flags: ClaimFlag[]; clean: boolean }
+
+export interface CoverLetterContent {
+  fullName: string;
+  email: string;
+  phone: string | null;
+  location: string;
+  company: string;
+  jobTitle: string;
+  greeting: string;
+  paragraphs: string[];
+  closing: string;
+  source: string;
+}
+
+export interface CoverLetterDto {
+  id: string;
+  jobId: string;
+  title: string;
+  createdAt: string;
+  contentHash: string;
+  stale: boolean;
+  letter: CoverLetterContent;
+  claims: ClaimCheck;
+}

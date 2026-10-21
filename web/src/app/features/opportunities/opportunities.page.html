@@ -309,6 +309,45 @@
                   <p class="alert alert-error" role="alert">{{ cvErrors()[job.id] }}</p>
                 }
               </section>
+              <section class="letter" aria-label="Cover letter">
+                <h3>Cover letter</h3>
+                @if (letters()[job.id]; as l) {
+                  <p class="muted small">
+                    {{ l.letter.source === 'owner' ? 'Your edited version' : 'AI draft (' + l.letter.source.replace('ai:', '') + ')' }}. Fingerprint {{ l.contentHash.slice(0, 12) }}.
+                    Read it fully: the checker below only catches skills and figures your verified profile does not support.
+                  </p>
+                  @if (l.claims.clean) {
+                    <p class="alert small" role="status">No unsupported skills or figures detected. This does not prove every sentence is true.</p>
+                  } @else {
+                    <div class="alert alert-error small" role="alert">
+                      <p><strong>Check these before using the letter:</strong></p>
+                      <ul>@for (f of l.claims.flags; track f.message) { <li>{{ f.message }}</li> }</ul>
+                    </div>
+                  }
+                  <label class="visually-hidden" [for]="'lt-' + job.id">Cover letter text, paragraphs separated by a blank line</label>
+                  <textarea [id]="'lt-' + job.id" rows="12" class="letter-text" [value]="letterText()[job.id]" (input)="onLetterInput(job, $event)"></textarea>
+                  <p class="muted small">Greeting "{{ l.letter.greeting }}" and a sign-off with your name are added in the file.</p>
+                  <div class="row">
+                    <button type="button" class="btn btn-small" (click)="reviseLetter(job)" [disabled]="isLetterBusy(job) || !letterEdited(job)">Save my edits and re-check</button>
+                    <button type="button" class="btn btn-small" (click)="downloadLetter(job)" [disabled]="isLetterBusy(job) || letterEdited(job)">Download .docx</button>
+                  </div>
+                  @if (letterEdited(job)) {
+                    <p class="muted small">Save your edits to re-check them and enable the download.</p>
+                  }
+                } @else if (d.aiAvailable) {
+                  <p class="muted small">
+                    The AI sees only your verified facts and this posting, writes a draft for you to edit, and every claim is checked against your profile. Nothing is sent to the employer.
+                  </p>
+                  <button type="button" class="btn btn-small" (click)="draftLetter(job)" [disabled]="isLetterBusy(job)">
+                    {{ isLetterBusy(job) ? 'Drafting…' : 'Draft cover letter with AI' }}
+                  </button>
+                } @else {
+                  <p class="muted small">Cover letter drafts need AI analysis to be configured on this server.</p>
+                }
+                @if (letterErrors()[job.id]) {
+                  <p class="alert alert-error" role="alert">{{ letterErrors()[job.id] }}</p>
+                }
+              </section>
               <p class="muted small">Text copied from the employer's posting. It is shown as plain text and never acted on.</p>
               <div class="description">{{ d.description || 'No description provided.' }}</div>
               @if (d.experienceYearsHint !== null) {
