@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddSingleton(llm ?? new LlmOptions());
         services.AddScoped<JobAnalysisService>();
         services.AddScoped<DocumentService>();
+        services.AddScoped<CoverLetterService>();
         services.AddScoped<MatchingService>();
         services.AddScoped<ProfileService>();
         services.AddScoped<CompanyService>();

@@ -82,6 +82,27 @@ public sealed class DocxCvRenderer : ICvRenderer
         return stream.ToArray();
     }
 
+    public byte[] RenderDocx(CoverLetterContent l)
+    {
+        using var stream = new MemoryStream();
+        using (var word = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
+        {
+            var main = word.AddMainDocumentPart();
+            main.Document = new Document(new Body());
+            var body = main.Document.Body!;
+            body.Append(Para(l.FullName, bold: true, size: 28));
+            var contact = new[] { l.Email, l.Phone, l.Location }.Where(x => !string.IsNullOrWhiteSpace(x));
+            body.Append(Para(string.Join("  |  ", contact!), size: 20));
+            body.Append(Para($"Application: {l.JobTitle}, {l.Company}", bold: true, spaceBefore: 360));
+            body.Append(Para(l.Greeting, spaceBefore: 240));
+            foreach (var p in l.Paragraphs) body.Append(Para(p, spaceBefore: 200));
+            var lines = l.Closing.Split('\n');
+            for (var i = 0; i < lines.Length; i++) body.Append(Para(lines[i], spaceBefore: i == 0 ? 280 : 0));
+            main.Document.Save();
+        }
+        return stream.ToArray();
+    }
+
     private static Paragraph Heading(string text) => Para(text.ToUpperInvariant(), bold: true, size: 24, spaceBefore: 240);
 
     private static Paragraph Para(string text, bool bold = false, int size = 22, int spaceBefore = 60)

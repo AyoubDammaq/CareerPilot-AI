@@ -11,6 +11,7 @@ public interface IDocumentStore
 {
     void Add(GeneratedDocument document);
     Task<GeneratedDocument?> GetAsync(Guid id, CancellationToken ct);
+    Task<int> CountCreatedSinceAsync(DocumentKind kind, DateTimeOffset since, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }
 
@@ -18,6 +19,7 @@ public interface IDocumentStore
 public interface ICvRenderer
 {
     byte[] RenderDocx(CvContent cv);
+    byte[] RenderDocx(CoverLetterContent letter);
 }
 
 public sealed record DocumentDto(
@@ -55,24 +57,40 @@ public sealed class DocumentService(IJobStore jobs, IProfileStore profiles, IDoc
 
     public async Task<DocumentDto> GetAsync(Guid id, CancellationToken ct)
     {
-        var (doc, content) = await LoadAsync(id, ct);
+        var doc = await docs.GetAsync(id, ct);
+        if (doc is null || doc.Kind != DocumentKind.Cv) throw new NotFoundException("Document not found.");
+        var content = JsonSerializer.Deserialize<CvContent>(doc.ContentJson, Json) ?? throw new NotFoundException("Document not found.");
         var profile = await profiles.GetAsync(ct);
         return ToDto(doc, content, null, stale: profile is not null && profile.Version != doc.ProfileVersion);
     }
 
     public async Task<DocumentFile> DownloadDocxAsync(Guid id, CancellationToken ct)
     {
-        var (doc, content) = await LoadAsync(id, ct);
-        audit.Stage("owner", "document.cv.downloaded", nameof(GeneratedDocument), doc.Id, null);
+        var doc = await docs.GetAsync(id, ct) ?? throw new NotFoundException("Document not found.");
+        byte[] bytes;
+        string name;
+        if (doc.Kind == DocumentKind.CoverLetter)
+        {
+            var letter = JsonSerializer.Deserialize<CoverLetterContent>(doc.ContentJson, Json) ?? throw new NotFoundException("Document not found.");
+            bytes = renderer.RenderDocx(letter);
+            name = LetterFileName(letter, doc);
+        }
+        else
+        {
+            var content = JsonSerializer.Deserialize<CvContent>(doc.ContentJson, Json) ?? throw new NotFoundException("Document not found.");
+            bytes = renderer.RenderDocx(content);
+            name = FileName(content, doc);
+        }
+        audit.Stage("owner", doc.Kind == DocumentKind.CoverLetter ? "document.letter.downloaded" : "document.cv.downloaded", nameof(GeneratedDocument), doc.Id, null);
         await docs.SaveChangesAsync(ct);
-        return new DocumentFile(renderer.RenderDocx(content), FileName(content, doc), DocxType);
+        return new DocumentFile(bytes, name, DocxType);
     }
 
-    private async Task<(GeneratedDocument, CvContent)> LoadAsync(Guid id, CancellationToken ct)
+    public static string LetterFileName(CoverLetterContent c, GeneratedDocument d)
     {
-        var doc = await docs.GetAsync(id, ct) ?? throw new NotFoundException("Document not found.");
-        var content = JsonSerializer.Deserialize<CvContent>(doc.ContentJson, Json) ?? throw new NotFoundException("Document not found.");
-        return (doc, content);
+        var name = new string([.. (string.IsNullOrWhiteSpace(c.FullName) ? "Cover letter" : "Cover letter " + c.FullName)
+            .Select(ch => char.IsAsciiLetterOrDigit(ch) ? ch : '-')]);
+        return $"{name.Trim('-')}-{d.ContentHash[..8]}.docx";
     }
 
     private static DocumentDto ToDto(GeneratedDocument d, CvContent c, CvReport? r, bool stale) =>

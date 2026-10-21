@@ -60,7 +60,7 @@ public sealed class JobAnalysisService(
     }
 
     /// <summary>Stops posting text from closing the fence early.</summary>
-    private static string Fence(string s) =>
+    internal static string Fence(string s) =>
         Regex.Replace(s ?? "", @"</?\s*(job_posting|candidate_profile)\s*>", "[tag removed]", RegexOptions.IgnoreCase);
 
     public async Task<AiStatusDto> StatusAsync(CancellationToken ct)
@@ -140,7 +140,7 @@ public sealed class JobAnalysisService(
             .Select(x => Clean(x.GetString(), 300)).Where(s => s.Length > 0).Take(5)];
     }
 
-    private static string Clean(string? s, int max)
+    internal static string Clean(string? s, int max)
     {
         if (string.IsNullOrEmpty(s)) return "";
         var noTags = Regex.Replace(s, "<[^>]*>", "");

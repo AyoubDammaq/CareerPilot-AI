@@ -2,7 +2,7 @@ using CareerPilot.Domain.Common;
 
 namespace CareerPilot.Domain.Documents;
 
-public enum DocumentKind { Cv }
+public enum DocumentKind { Cv, CoverLetter }
 
 /// <summary>
 /// A document prepared for one vacancy. The exact content is stored as a snapshot and fingerprinted, so a later

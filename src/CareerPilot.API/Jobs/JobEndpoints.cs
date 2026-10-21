@@ -54,7 +54,18 @@ public static class JobEndpoints
             var doc = await d.CreateCvAsync(id, ct);
             return Results.Created($"/api/documents/{doc.Id}", doc);
         });
+        jobs.MapPost("{id:guid}/documents/cover-letter", async (Guid id, CoverLetterService c, CancellationToken ct) =>
+        {
+            var letter = await c.DraftAsync(id, ct);
+            return Results.Created($"/api/documents/{letter.Id}/cover-letter", letter);
+        });
         var documents = app.MapGroup("/api/documents");
+        documents.MapGet("{id:guid}/cover-letter", async (Guid id, CoverLetterService c, CancellationToken ct) => Results.Ok(await c.GetAsync(id, ct)));
+        documents.MapPost("{id:guid}/revise", async (Guid id, ReviseLetterInput input, CoverLetterService c, CancellationToken ct) =>
+        {
+            var letter = await c.ReviseAsync(id, input, ct);
+            return Results.Created($"/api/documents/{letter.Id}/cover-letter", letter);
+        });
         documents.MapGet("{id:guid}", async (Guid id, DocumentService d, CancellationToken ct) => Results.Ok(await d.GetAsync(id, ct)));
         documents.MapGet("{id:guid}/download", async (Guid id, DocumentService d, CancellationToken ct) =>
         {

@@ -162,12 +162,14 @@ public class DocxRendererTests
 
 public class DocumentServiceTests
 {
-    private sealed class MemoryDocs : IDocumentStore
+    internal sealed class MemoryDocs : IDocumentStore
     {
         public List<GeneratedDocument> Items { get; } = [];
         public int Saves { get; private set; }
         public void Add(GeneratedDocument d) => Items.Add(d);
         public Task<GeneratedDocument?> GetAsync(Guid id, CancellationToken ct) => Task.FromResult(Items.FirstOrDefault(d => d.Id == id));
+        public Task<int> CountCreatedSinceAsync(DocumentKind kind, DateTimeOffset since, CancellationToken ct) =>
+            Task.FromResult(Items.Count(d => d.Kind == kind && d.CreatedAt >= since));
         public Task SaveChangesAsync(CancellationToken ct) { Saves++; return Task.CompletedTask; }
     }
 

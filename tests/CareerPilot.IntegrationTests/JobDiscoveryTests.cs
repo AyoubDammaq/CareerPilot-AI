@@ -189,6 +189,28 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
     }
 
     [RequiresDatabaseFact]
+    public async Task Cover_letters_need_a_configured_AI_and_are_protected()
+    {
+        using var client = await api.CreateFakeConnectorClientAsync();
+        await RunSearchAsync(client);
+        var list = (await client.GetFromJsonAsync<PagedResult<JobSummaryDto>>("/api/jobs?relevantOnly=false&pageSize=1", Json))!;
+        var jobId = list.Items[0].Id;
+
+        var draft = await client.PostAsync($"/api/jobs/{jobId}/documents/cover-letter", null);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, draft.StatusCode);
+        Assert.Contains("not configured", await draft.Content.ReadAsStringAsync());
+
+        // A CV is not a letter: letter endpoints refuse it.
+        var cv = await (await client.PostAsync($"/api/jobs/{jobId}/documents/cv", null)).Content.ReadFromJsonAsync<CareerPilot.Application.Documents.DocumentDto>(Json);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/documents/{cv!.Id}/cover-letter")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.PostAsJsonAsync($"/api/documents/{cv.Id}/revise", new { paragraphs = new[] { "x" } })).StatusCode);
+
+        using var anon = api.CreateAnonymousClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.PostAsync($"/api/jobs/{jobId}/documents/cover-letter", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.PostAsJsonAsync($"/api/documents/{cv.Id}/revise", new { paragraphs = new[] { "x" } })).StatusCode);
+    }
+
+    [RequiresDatabaseFact]
     public async Task Filters_sorting_paging_and_detail_work()
     {
         using var client = await api.CreateFakeConnectorClientAsync();
