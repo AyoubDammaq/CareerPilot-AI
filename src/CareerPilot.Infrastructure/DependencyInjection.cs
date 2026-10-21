@@ -1,4 +1,6 @@
 using CareerPilot.Application.Abstractions;
+using CareerPilot.Application.Ai;
+using CareerPilot.Infrastructure.Ai;
 using CareerPilot.Application.Jobs;
 using CareerPilot.Infrastructure.Jobs;
 using CareerPilot.Infrastructure.Persistence;
@@ -20,6 +22,15 @@ public static class DependencyInjection
         services.AddScoped<IProfileStore, EfProfileStore>();
         services.AddScoped<IAuditLog, EfAuditLog>();
         services.AddScoped<IJobStore, EfJobStore>();
+
+        services.AddHttpClient<AnthropicLlmClient>((sp, c) => c.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<LlmOptions>().TimeoutSeconds));
+        services.AddHttpClient<OpenAiCompatibleLlmClient>((sp, c) => c.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<LlmOptions>().TimeoutSeconds));
+        services.AddScoped<ILlmClient>(sp => sp.GetRequiredService<LlmOptions>().Provider switch
+        {
+            LlmProvider.Anthropic => sp.GetRequiredService<AnthropicLlmClient>(),
+            LlmProvider.OpenAiCompatible => sp.GetRequiredService<OpenAiCompatibleLlmClient>(),
+            _ => new DisabledLlmClient(),
+        });
 
         services.AddSingleton(new ConnectorOptions());
         AddConnector<GreenhouseConnector>(services);

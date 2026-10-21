@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using CareerPilot.API.Auth;
 using CareerPilot.API.Jobs;
 using CareerPilot.Application;
+using CareerPilot.Application.Ai;
 using CareerPilot.Application.Common;
 using CareerPilot.Application.Jobs;
 using CareerPilot.Application.Matching;
@@ -26,7 +27,8 @@ builder.Services.AddSingleton<TokenService>();
 
 var discovery = builder.Configuration.GetSection(DiscoveryOptions.Section).Get<DiscoveryOptions>() ?? new DiscoveryOptions();
 var scoring = builder.Configuration.GetSection(ScoringOptions.Section).Get<ScoringOptions>() ?? new ScoringOptions();
-builder.Services.AddApplication(discovery, scoring);
+var llm = builder.Configuration.GetSection(LlmOptions.Section).Get<LlmOptions>() ?? new LlmOptions();
+builder.Services.AddApplication(discovery, scoring, llm);
 builder.Services.AddSingleton<SearchRunQueue>();
 builder.Services.AddHostedService<SearchRunWorker>();
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -95,6 +97,10 @@ app.UseExceptionHandler(handler => handler.Run(async ctx =>
         case ConflictException conflict:
             ctx.Response.StatusCode = StatusCodes.Status409Conflict;
             await ctx.Response.WriteAsJsonAsync(new { title = conflict.Message, status = 409 });
+            break;
+        case AiUnavailableException ai:
+            ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            await ctx.Response.WriteAsJsonAsync(new { title = ai.Message, status = 503 });
             break;
         case BadHttpRequestException bad:
             ctx.Response.StatusCode = StatusCodes.Status400BadRequest;

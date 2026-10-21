@@ -57,6 +57,10 @@ public class JobListing : Entity
     public string? MatchJson { get; set; }
     public DateTimeOffset? ScoredAt { get; set; }
 
+    // Optional AI commentary (plain text, derived, never used to decide anything).
+    public string? AiAnalysisJson { get; set; }
+    public DateTimeOffset? AiAnalyzedAt { get; set; }
+
     public UserDecision Decision { get; set; } = UserDecision.None;
 
     public List<JobPosting> Postings { get; set; } = [];

@@ -4,7 +4,7 @@ using CareerPilot.Domain.Jobs;
 
 namespace CareerPilot.Application.Jobs;
 
-public sealed class JobQueryService(IJobStore store, IAuditLog audit)
+public sealed class JobQueryService(IJobStore store, IAuditLog audit, CareerPilot.Application.Ai.LlmOptions? llm = null)
 {
     public async Task<PagedResult<JobSummaryDto>> QueryAsync(JobQuery query, CancellationToken ct)
     {
@@ -15,7 +15,7 @@ public sealed class JobQueryService(IJobStore store, IAuditLog audit)
     }
 
     public async Task<JobDetailDto> GetAsync(Guid id, CancellationToken ct) =>
-        JobMapper.ToDetail(await store.GetListingAsync(id, ct) ?? throw new NotFoundException("Job not found."));
+        JobMapper.ToDetail(await store.GetListingAsync(id, ct) ?? throw new NotFoundException("Job not found.")) with { AiAvailable = llm?.IsConfigured ?? false };
 
     public async Task<JobSummaryDto> SetDecisionAsync(Guid id, string? decision, CancellationToken ct)
     {

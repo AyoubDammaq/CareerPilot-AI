@@ -134,6 +134,28 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
     }
 
     [RequiresDatabaseFact]
+    public async Task AI_analysis_is_off_by_default_and_says_so_without_leaking_anything()
+    {
+        using var client = await api.CreateFakeConnectorClientAsync();
+        await RunSearchAsync(client);
+        var status = await client.GetStringAsync("/api/ai/status");
+        Assert.Contains("\"enabled\":false", status);
+
+        var list = (await client.GetFromJsonAsync<PagedResult<JobSummaryDto>>("/api/jobs?relevantOnly=false&pageSize=1", Json))!;
+        var detail = (await client.GetFromJsonAsync<JobDetailDto>($"/api/jobs/{list.Items[0].Id}", Json))!;
+        Assert.False(detail.AiAvailable);
+        Assert.Null(detail.Analysis);
+
+        var response = await client.PostAsync($"/api/jobs/{list.Items[0].Id}/analysis", null);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Contains("not configured", await response.Content.ReadAsStringAsync());
+
+        using var anon = api.CreateAnonymousClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync("/api/ai/status")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.PostAsync($"/api/jobs/{list.Items[0].Id}/analysis", null)).StatusCode);
+    }
+
+    [RequiresDatabaseFact]
     public async Task Filters_sorting_paging_and_detail_work()
     {
         using var client = await api.CreateFakeConnectorClientAsync();

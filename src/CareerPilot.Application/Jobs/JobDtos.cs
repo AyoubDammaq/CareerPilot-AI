@@ -22,7 +22,8 @@ public sealed record JobSummaryDto(
     string SourceUrl, string ApplyUrl, List<string> Sources, int? MatchScore = null, string? MatchTier = null);
 
 public sealed record JobDetailDto(JobSummaryDto Summary, string Description, int? ExperienceYearsHint, List<PostingDto> Postings,
-    CareerPilot.Application.Matching.MatchResult? Match = null);
+    CareerPilot.Application.Matching.MatchResult? Match = null,
+    CareerPilot.Application.Ai.JobAnalysisDto? Analysis = null, bool AiAvailable = false);
 
 public sealed record PagedResult<T>(List<T> Items, int Total, int Page, int PageSize);
 
@@ -56,7 +57,8 @@ public static class JobMapper
     public static JobDetailDto ToDetail(JobListing l) => new(
         ToSummary(l), l.Description, l.ExperienceYearsHint,
         [.. l.Postings.Select(p => new PostingDto(p.Kind.ToString(), p.SourceUrl, p.ApplyUrl, p.IsPresent, p.LastSeenAt))],
-        CareerPilot.Application.Matching.MatchingService.Deserialize(l.MatchJson));
+        CareerPilot.Application.Matching.MatchingService.Deserialize(l.MatchJson),
+        CareerPilot.Application.Ai.JobAnalysisService.Deserialize(l.AiAnalysisJson));
 
     public static SearchRunDto ToDto(SearchRun r) => new(
         r.Id, r.Trigger.ToString(), r.Status.ToString(), r.CreatedAt, r.StartedAt, r.FinishedAt,
