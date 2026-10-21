@@ -1,5 +1,6 @@
 using CareerPilot.Application.Abstractions;
 using CareerPilot.Application.Ai;
+using CareerPilot.Application.Applications;
 using CareerPilot.Application.Documents;
 using CareerPilot.Infrastructure.Documents;
 using CareerPilot.Infrastructure.Ai;
@@ -25,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditLog, EfAuditLog>();
         services.AddScoped<IJobStore, EfJobStore>();
         services.AddScoped<IDocumentStore, EfDocumentStore>();
+        services.AddScoped<IApplicationStore, EfApplicationStore>();
         services.AddSingleton<ICvRenderer, DocxCvRenderer>();
 
         services.AddHttpClient<AnthropicLlmClient>((sp, c) => c.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<LlmOptions>().TimeoutSeconds));

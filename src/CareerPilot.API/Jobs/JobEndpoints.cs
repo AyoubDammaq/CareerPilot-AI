@@ -1,5 +1,6 @@
 using CareerPilot.Application.Abstractions;
 using CareerPilot.Application.Ai;
+using CareerPilot.Application.Applications;
 using CareerPilot.Application.Documents;
 using CareerPilot.Application.Jobs;
 using CareerPilot.Application.Matching;
@@ -59,6 +60,21 @@ public static class JobEndpoints
             var letter = await c.DraftAsync(id, ct);
             return Results.Created($"/api/documents/{letter.Id}/cover-letter", letter);
         });
+        jobs.MapGet("{id:guid}/documents", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.DocumentsForJobAsync(id, ct)));
+        jobs.MapPost("{id:guid}/application", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.StartAsync(id, ct)));
+
+        var applications = app.MapGroup("/api/applications");
+        applications.MapGet("", async (ApplicationService a, CancellationToken ct) => Results.Ok(await a.ListAsync(ct)));
+        applications.MapGet("{id:guid}", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.GetAsync(id, ct)));
+        applications.MapPut("{id:guid}/documents", async (Guid id, SetDocumentsInput input, ApplicationService a, CancellationToken ct) => Results.Ok(await a.SetDocumentsAsync(id, input, ct)));
+        applications.MapPost("{id:guid}/request-review", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.RequestReviewAsync(id, ct)));
+        applications.MapPost("{id:guid}/approve", async (Guid id, ApproveInput input, ApplicationService a, CancellationToken ct) => Results.Ok(await a.ApproveAsync(id, input, ct)));
+        applications.MapPost("{id:guid}/withdraw-approval", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.WithdrawApprovalAsync(id, ct)));
+        applications.MapPost("{id:guid}/ready", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.MarkReadyAsync(id, ct)));
+        applications.MapPost("{id:guid}/submission", async (Guid id, SubmissionInput input, ApplicationService a, CancellationToken ct) => Results.Ok(await a.RecordSubmissionAsync(id, input, ct)));
+        applications.MapPost("{id:guid}/confirm-submission", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.ConfirmSubmissionAsync(id, ct)));
+        applications.MapPost("{id:guid}/status", async (Guid id, StatusInput input, ApplicationService a, CancellationToken ct) => Results.Ok(await a.SetStatusAsync(id, input, ct)));
+
         var documents = app.MapGroup("/api/documents");
         documents.MapGet("{id:guid}/cover-letter", async (Guid id, CoverLetterService c, CancellationToken ct) => Results.Ok(await c.GetAsync(id, ct)));
         documents.MapPost("{id:guid}/revise", async (Guid id, ReviseLetterInput input, CoverLetterService c, CancellationToken ct) =>

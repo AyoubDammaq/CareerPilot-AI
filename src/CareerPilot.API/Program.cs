@@ -4,6 +4,7 @@ using CareerPilot.API.Auth;
 using CareerPilot.API.Jobs;
 using CareerPilot.Application;
 using CareerPilot.Application.Ai;
+using CareerPilot.Domain.Common;
 using CareerPilot.Application.Common;
 using CareerPilot.Application.Jobs;
 using CareerPilot.Application.Matching;
@@ -97,6 +98,10 @@ app.UseExceptionHandler(handler => handler.Run(async ctx =>
         case ConflictException conflict:
             ctx.Response.StatusCode = StatusCodes.Status409Conflict;
             await ctx.Response.WriteAsJsonAsync(new { title = conflict.Message, status = 409 });
+            break;
+        case DomainException domain:
+            ctx.Response.StatusCode = StatusCodes.Status409Conflict;
+            await ctx.Response.WriteAsJsonAsync(new { title = domain.Message, status = 409 });
             break;
         case AiUnavailableException ai:
             ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;

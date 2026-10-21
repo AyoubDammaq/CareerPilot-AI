@@ -11,6 +11,7 @@ public interface IDocumentStore
 {
     void Add(GeneratedDocument document);
     Task<GeneratedDocument?> GetAsync(Guid id, CancellationToken ct);
+    Task<List<GeneratedDocument>> ListForJobAsync(Guid jobId, CancellationToken ct);
     Task<int> CountCreatedSinceAsync(DocumentKind kind, DateTimeOffset since, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }

@@ -1,5 +1,6 @@
 using CareerPilot.Domain.Audit;
 using CareerPilot.Domain.Common;
+using CareerPilot.Domain.Applications;
 using CareerPilot.Domain.Documents;
 using CareerPilot.Domain.Jobs;
 using CareerPilot.Domain.Profiles;
@@ -22,6 +23,7 @@ public class CareerPilotDbContext(DbContextOptions<CareerPilotDbContext> options
     public DbSet<JobPosting> JobPostings => Set<JobPosting>();
     public DbSet<SearchRun> SearchRuns => Set<SearchRun>();
     public DbSet<GeneratedDocument> GeneratedDocuments => Set<GeneratedDocument>();
+    public DbSet<JobApplication> JobApplications => Set<JobApplication>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -123,6 +125,16 @@ public class CareerPilotDbContext(DbContextOptions<CareerPilotDbContext> options
             b.Property(x => x.Kind).HasConversion<string>().HasMaxLength(20);
             b.Property(x => x.LastError).HasMaxLength(500);
             b.HasIndex(x => new { x.Kind, x.BoardToken }).IsUnique();
+        });
+
+        modelBuilder.Entity<JobApplication>(b =>
+        {
+            b.ToTable("job_applications");
+            b.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+            b.Property(x => x.ApprovedContentHash).HasMaxLength(64);
+            b.Property(x => x.SubmissionNote).HasMaxLength(500);
+            b.HasOne<JobListing>().WithMany().HasForeignKey(x => x.CanonicalJobId).OnDelete(DeleteBehavior.Cascade);
+            b.HasIndex(x => x.CanonicalJobId).IsUnique();
         });
 
         modelBuilder.Entity<GeneratedDocument>(b =>

@@ -12,6 +12,9 @@ public sealed class EfDocumentStore(CareerPilotDbContext db) : IDocumentStore
     public Task<GeneratedDocument?> GetAsync(Guid id, CancellationToken ct) =>
         db.GeneratedDocuments.FirstOrDefaultAsync(d => d.Id == id, ct);
 
+    public Task<List<GeneratedDocument>> ListForJobAsync(Guid jobId, CancellationToken ct) =>
+        db.GeneratedDocuments.AsNoTracking().Where(d => d.JobListingId == jobId).OrderByDescending(d => d.CreatedAt).ToListAsync(ct);
+
     public Task<int> CountCreatedSinceAsync(DocumentKind kind, DateTimeOffset since, CancellationToken ct) =>
         db.GeneratedDocuments.CountAsync(d => d.Kind == kind && d.CreatedAt >= since, ct);
 

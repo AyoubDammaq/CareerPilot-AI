@@ -298,6 +298,7 @@ internal sealed class DocumentServiceTests_Docs : IDocumentStore
     public List<GeneratedDocument> Items { get; } = [];
     public void Add(GeneratedDocument d) => Items.Add(d);
     public Task<GeneratedDocument?> GetAsync(Guid id, CancellationToken ct) => Task.FromResult(Items.FirstOrDefault(d => d.Id == id));
+    public Task<List<GeneratedDocument>> ListForJobAsync(Guid jobId, CancellationToken ct) => Task.FromResult(Items.Where(d => d.JobListingId == jobId).ToList());
     public Task<int> CountCreatedSinceAsync(DocumentKind kind, DateTimeOffset since, CancellationToken ct) =>
         Task.FromResult(Items.Count(d => d.Kind == kind && d.CreatedAt >= since));
     public Task SaveChangesAsync(CancellationToken ct) => Task.CompletedTask;

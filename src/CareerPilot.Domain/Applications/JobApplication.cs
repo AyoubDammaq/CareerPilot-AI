@@ -11,7 +11,7 @@ namespace CareerPilot.Domain.Applications;
 ///  - preparing/submitting requires an approval, and submitting requires that the
 ///    content hash still matches what was approved;
 ///  - Submitted/SubmissionUnconfirmed are reachable only through RecordSubmission.
-/// Not yet mapped to the database; that arrives with the job model (Phase 2/5).
+/// Nothing in this system submits an application: submission is always done by the owner and only recorded here.
 /// </summary>
 public class JobApplication : Entity
 {
@@ -24,6 +24,29 @@ public class JobApplication : Entity
     public string? ApprovedContentHash { get; private set; }
     public DateTimeOffset? ApprovedAt { get; private set; }
     public DateTimeOffset? SubmittedAt { get; private set; }
+
+    /// <summary>The documents under review. They are immutable snapshots, so their hashes cannot drift.</summary>
+    public Guid? CvDocumentId { get; private set; }
+    public Guid? CoverLetterDocumentId { get; private set; }
+
+    /// <summary>What the owner reported about the submission. Evidence is always owner-reported: nothing here submits anything.</summary>
+    public string? SubmissionNote { get; private set; }
+
+    /// <summary>Chooses the documents to review. Changing them after approval withdraws the approval.</summary>
+    public void SetDocuments(Guid cvDocumentId, Guid? coverLetterDocumentId)
+    {
+        if (Status is ApplicationStatus.Discovered or ApplicationStatus.UnderEvaluation)
+            throw new DomainException("Shortlist the application before choosing documents.");
+        if (Status is not (ApplicationStatus.Shortlisted or ApplicationStatus.AwaitingApproval
+            or ApplicationStatus.Approved or ApplicationStatus.PreparingApplication or ApplicationStatus.ReadyToSubmit))
+            throw new DomainException($"Documents cannot be changed while the application is {Status}.");
+
+        var changed = CvDocumentId != cvDocumentId || CoverLetterDocumentId != coverLetterDocumentId;
+        CvDocumentId = cvDocumentId;
+        CoverLetterDocumentId = coverLetterDocumentId;
+        if (changed) InvalidateApproval();
+        Touch();
+    }
 
     public void TransitionTo(ApplicationStatus next)
     {
@@ -80,11 +103,12 @@ public class JobApplication : Entity
     }
 
     /// <param name="confirmed">True only when there is real evidence (confirmation page, verifiable response).</param>
-    public void RecordSubmission(string currentContentHash, bool confirmed, DateTimeOffset now)
+    public void RecordSubmission(string currentContentHash, bool confirmed, DateTimeOffset now, string? note = null)
     {
         if (Status != ApplicationStatus.ReadyToSubmit)
             throw new DomainException($"Only a ready application can be submitted (current: {Status}).");
         EnsureApprovedFor(currentContentHash);
+        SubmissionNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim()[..Math.Min(note.Trim().Length, 500)];
 
         if (confirmed)
         {

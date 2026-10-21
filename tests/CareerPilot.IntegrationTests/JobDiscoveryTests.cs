@@ -163,6 +163,16 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
         var list = (await client.GetFromJsonAsync<PagedResult<JobSummaryDto>>("/api/jobs?relevantOnly=false&pageSize=1", Json))!;
         var jobId = list.Items[0].Id;
 
+        // This test needs a profile with nothing verified (other tests may have verified facts in the shared database).
+        var current = (await client.GetFromJsonAsync<CareerPilot.Application.Profiles.ProfileDto>("/api/profile", Json))!;
+        var unverified = current with
+        {
+            WorkExperiences = [.. current.WorkExperiences.Select(w => w with { IsVerified = false })],
+            Skills = [.. current.Skills.Select(x => x with { IsVerified = false })],
+            Projects = [.. current.Projects.Select(x => x with { IsVerified = false })],
+        };
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync("/api/profile", unverified, Json)).StatusCode);
+
         var created = await client.PostAsync($"/api/jobs/{jobId}/documents/cv", null);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
         var doc = (await created.Content.ReadFromJsonAsync<CareerPilot.Application.Documents.DocumentDto>(Json))!;
@@ -208,6 +218,80 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
         using var anon = api.CreateAnonymousClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.PostAsync($"/api/jobs/{jobId}/documents/cover-letter", null)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.PostAsJsonAsync($"/api/documents/{cv.Id}/revise", new { paragraphs = new[] { "x" } })).StatusCode);
+    }
+
+    [RequiresDatabaseFact]
+    public async Task The_approval_flow_is_enforced_end_to_end_and_nothing_is_submitted_by_the_system()
+    {
+        using var client = await api.CreateFakeConnectorClientAsync();
+        await RunSearchAsync(client);
+        var list = (await client.GetFromJsonAsync<PagedResult<JobSummaryDto>>("/api/jobs?relevantOnly=false&pageSize=1", Json))!;
+        var jobId = list.Items[0].Id;
+
+        // Make the profile able to produce a usable CV: verify the owner's facts.
+        var profile = (await client.GetFromJsonAsync<CareerPilot.Application.Profiles.ProfileDto>("/api/profile", Json))!;
+        var verified = profile with
+        {
+            FullName = "Test Owner",
+            Email = "owner@example.test",
+            WorkExperiences = [.. profile.WorkExperiences.Select(w => w with { IsVerified = true })],
+            Skills = [.. profile.Skills.Select(s => s with { IsVerified = true })],
+        };
+        var put = await client.PutAsJsonAsync("/api/profile", verified, Json);
+        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+
+        var started = (await (await client.PostAsync($"/api/jobs/{jobId}/application", null)).Content
+            .ReadFromJsonAsync<CareerPilot.Application.Applications.ApplicationDto>(Json))!;
+        Assert.Equal("Shortlisted", started.Status);
+        var again = (await (await client.PostAsync($"/api/jobs/{jobId}/application", null)).Content
+            .ReadFromJsonAsync<CareerPilot.Application.Applications.ApplicationDto>(Json))!;
+        Assert.Equal(started.Id, again.Id);
+
+        // Not approved yet: every later step is refused.
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsync($"/api/applications/{started.Id}/ready", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync($"/api/applications/{started.Id}/submission", new { confirmed = true }, Json)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync($"/api/applications/{started.Id}/status", new { status = "Submitted" }, Json)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync($"/api/applications/{started.Id}/approve", new { bundleHash = "x", acknowledgeFlags = true }, Json)).StatusCode);
+
+        var cv = (await (await client.PostAsync($"/api/jobs/{jobId}/documents/cv", null)).Content
+            .ReadFromJsonAsync<CareerPilot.Application.Documents.DocumentDto>(Json))!;
+        var docs = (await client.GetFromJsonAsync<List<CareerPilot.Application.Applications.DocumentSummaryDto>>($"/api/jobs/{jobId}/documents", Json))!;
+        Assert.Contains(docs, d => d.Id == cv.Id && d.Kind == "Cv");
+
+        var attached = (await (await client.PutAsJsonAsync($"/api/applications/{started.Id}/documents", new { cvDocumentId = cv.Id }, Json)).Content
+            .ReadFromJsonAsync<CareerPilot.Application.Applications.ApplicationDto>(Json))!;
+        Assert.NotNull(attached.Review!.BundleHash);
+
+        var review = (await (await client.PostAsync($"/api/applications/{started.Id}/request-review", null)).Content
+            .ReadFromJsonAsync<CareerPilot.Application.Applications.ApplicationDto>(Json))!;
+        Assert.Equal("AwaitingApproval", review.Status);
+
+        var wrong = await client.PostAsJsonAsync($"/api/applications/{started.Id}/approve", new { bundleHash = "not-the-hash", acknowledgeFlags = false }, Json);
+        Assert.Equal(HttpStatusCode.Conflict, wrong.StatusCode);
+
+        var approved = (await (await client.PostAsJsonAsync($"/api/applications/{started.Id}/approve",
+            new { bundleHash = review.Review!.BundleHash, acknowledgeFlags = false }, Json)).Content
+            .ReadFromJsonAsync<CareerPilot.Application.Applications.ApplicationDto>(Json))!;
+        Assert.Equal("Approved", approved.Status);
+        Assert.Equal(review.Review.BundleHash, approved.ApprovedBundleHash);
+
+        var ready = (await (await client.PostAsync($"/api/applications/{started.Id}/ready", null)).Content
+            .ReadFromJsonAsync<CareerPilot.Application.Applications.ApplicationDto>(Json))!;
+        Assert.Equal("ReadyToSubmit", ready.Status);
+        Assert.False(string.IsNullOrEmpty(ready.ApplyUrl));
+
+        var done = (await (await client.PostAsJsonAsync($"/api/applications/{started.Id}/submission", new { confirmed = true, note = "I saw the confirmation" }, Json)).Content
+            .ReadFromJsonAsync<CareerPilot.Application.Applications.ApplicationDto>(Json))!;
+        Assert.Equal("Submitted", done.Status);
+        Assert.Equal("I saw the confirmation", done.SubmissionNote);
+
+        var all = (await client.GetFromJsonAsync<List<CareerPilot.Application.Applications.ApplicationDto>>("/api/applications", Json))!;
+        Assert.Contains(all, a => a.Id == started.Id && a.Status == "Submitted");
+
+        using var anon = api.CreateAnonymousClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync("/api/applications")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.PostAsJsonAsync($"/api/applications/{started.Id}/approve", new { bundleHash = "x" }, Json)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/applications/{Guid.NewGuid()}")).StatusCode);
     }
 
     [RequiresDatabaseFact]
