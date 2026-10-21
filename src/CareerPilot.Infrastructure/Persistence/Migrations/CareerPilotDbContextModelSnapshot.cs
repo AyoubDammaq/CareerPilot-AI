@@ -151,6 +151,12 @@ namespace CareerPilot.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("MatchJson")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("MatchScore")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("MentionsRelocation")
                         .HasColumnType("boolean");
 
@@ -175,6 +181,9 @@ namespace CareerPilot.Infrastructure.Persistence.Migrations
                     b.Property<string>("SalaryPeriod")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset?>("ScoredAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Seniority")
                         .IsRequired()
