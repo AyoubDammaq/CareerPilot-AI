@@ -1,0 +1,192 @@
+<header class="page-header">
+  <h1>Job Opportunities</h1>
+  <p class="muted">Jobs found on your company boards, checked against your profile preferences. Scoring and match explanations arrive in Phase 3.</p>
+</header>
+
+<section class="card" aria-labelledby="filters-h">
+  <h2 id="filters-h" class="visually-hidden">Filters</h2>
+  <form [formGroup]="filters" (submit)="$event.preventDefault()" role="search">
+    <div class="grid">
+      <div class="field">
+        <label for="f-q">Title or company</label>
+        <input id="f-q" type="text" formControlName="q" />
+      </div>
+      <div class="field">
+        <label for="f-country">Country</label>
+        <input id="f-country" type="text" formControlName="country" placeholder="e.g. France" />
+      </div>
+      <div class="field">
+        <label for="f-mode">Work arrangement</label>
+        <select id="f-mode" formControlName="workMode">
+          <option value="">Any</option>
+          <option value="Remote">Remote</option>
+          <option value="Hybrid">Hybrid</option>
+          <option value="OnSite">On-site</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-geo">Location check</label>
+        <select id="f-geo" formControlName="geoFit">
+          <option value="">Any</option>
+          <option value="Match">Matches your targets</option>
+          <option value="NeedsReview">Check eligibility</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-status">Vacancy status</label>
+        <select id="f-status" formControlName="status">
+          <option value="">Open or not recently verified</option>
+          <option value="Open">Open</option>
+          <option value="Unverified">Not recently verified</option>
+          <option value="Closed">No longer listed</option>
+          <option value="Expired">Deadline passed</option>
+          <option value="All">All</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-decision">My decisions</label>
+        <select id="f-decision" formControlName="decision">
+          <option value="">Not excluded</option>
+          <option value="Saved">Saved</option>
+          <option value="Excluded">Excluded</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-sort">Sort by</label>
+        <select id="f-sort" formControlName="sort">
+          <option value="newest">Most recent</option>
+          <option value="company">Company</option>
+          <option value="title">Title</option>
+          <option value="verified">Last verified</option>
+          <option value="deadline">Application deadline</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="check">
+        <input id="f-filtered" type="checkbox" formControlName="showFiltered" />
+        <label for="f-filtered">Also show jobs filtered out (with the reason)</label>
+      </div>
+      <button type="button" class="btn btn-small" (click)="clearFilters()">Clear filters</button>
+    </div>
+  </form>
+</section>
+
+<div aria-live="polite">
+  @if (actionError()) {
+    <p class="alert alert-error" role="alert">{{ actionError() }}</p>
+  }
+</div>
+
+@if (loading()) {
+  <p role="status" class="muted">Loading jobs&hellip;</p>
+} @else if (error()) {
+  <div class="alert alert-error" role="alert">
+    <p>{{ error() }}</p>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+} @else if (jobs().length === 0) {
+  <section class="card">
+    <p class="empty">No jobs match these filters.</p>
+    <p class="muted small">
+      If you have not searched yet, add company boards and run a search on <a routerLink="/job-search">Job Search</a>.
+    </p>
+  </section>
+} @else {
+  <p class="muted small" role="status">{{ total() }} {{ total() === 1 ? 'job' : 'jobs' }} &middot; page {{ page() }} of {{ pages }}</p>
+
+  <ul class="job-list">
+    @for (job of jobs(); track job.id) {
+      <li class="card job" [class.job-filtered]="!job.isRelevant">
+        <div class="job-head">
+          <div>
+            <h2>{{ job.title }}</h2>
+            <p class="muted">{{ job.companyName }} &middot; {{ job.locationText || 'Location not stated' }}</p>
+          </div>
+          @if (job.decision !== 'None') {
+            <span class="badge">{{ job.decision }}</span>
+          }
+        </div>
+
+        <ul class="tags">
+          @if (job.workMode) { <li>{{ job.workMode }}</li> }
+          @if (job.employmentType) { <li>{{ job.employmentType }}</li> }
+          <li [class.tag-warn]="job.status !== 'Open'">
+            {{ job.status === 'Open' ? 'Open' : job.status === 'Unverified' ? 'Not recently verified' : job.status === 'Closed' ? 'No longer listed' : 'Deadline passed' }}
+          </li>
+          <li [class.tag-warn]="job.geoFit !== 'Match'">{{ geoLabel(job.geoFit) }}</li>
+          @if (job.seniority !== 'Unspecified') { <li>{{ job.seniority }}</li> }
+          @if (job.mentionsSponsorship) { <li>Mentions visa sponsorship</li> }
+          @if (job.mentionsRelocation) { <li>Mentions relocation support</li> }
+        </ul>
+
+        @if (job.geoNote) {
+          <p class="small">{{ job.geoNote }}</p>
+        }
+        @if (!job.isRelevant && job.filterReasons.length > 0) {
+          <div class="alert alert-error small">
+            <p><strong>Filtered out:</strong></p>
+            <ul>
+              @for (r of job.filterReasons; track r) { <li>{{ r }}</li> }
+            </ul>
+          </div>
+        }
+
+        <p class="muted small">
+          @if (job.publishedAt) { Published {{ job.publishedAt | date: 'd MMM y' }} &middot; } @else { Publication date not stated &middot; }
+          Last verified {{ job.lastVerifiedAt | date: 'd MMM y' }}
+          @if (job.applicationDeadline) { &middot; Apply by {{ job.applicationDeadline | date: 'd MMM y' }} }
+          @if (salary(job); as s) { &middot; Stated salary: {{ s }} }
+        </p>
+
+        @if (job.skills.length > 0) {
+          <ul class="tags" aria-label="Technologies mentioned">
+            @for (s of job.skills.slice(0, 10); track s) { <li>{{ s }}</li> }
+          </ul>
+        }
+
+        <div class="row">
+          @if (job.sourceUrl) {
+            <a class="btn btn-small" [href]="job.sourceUrl" target="_blank" rel="noopener noreferrer" [attr.aria-label]="'Open the posting for ' + job.title + ' (new tab)'">
+              Open posting
+            </a>
+          }
+          <button type="button" class="btn btn-small" (click)="toggleDetails(job)" [attr.aria-expanded]="isOpen(job)" [attr.aria-controls]="'d-' + job.id">
+            {{ isOpen(job) ? 'Hide description' : 'Show description' }}
+          </button>
+          @if (job.decision === 'Saved') {
+            <button type="button" class="btn btn-small" (click)="decide(job, 'None')" [attr.aria-label]="'Unsave ' + job.title">Unsave</button>
+          } @else {
+            <button type="button" class="btn btn-small" (click)="decide(job, 'Saved')" [attr.aria-label]="'Save ' + job.title + ' for later'">Save for later</button>
+          }
+          @if (job.decision === 'Excluded') {
+            <button type="button" class="btn btn-small" (click)="decide(job, 'None')" [attr.aria-label]="'Restore ' + job.title">Restore</button>
+          } @else {
+            <button type="button" class="btn btn-small btn-danger" (click)="decide(job, 'Excluded')" [attr.aria-label]="'Exclude ' + job.title + ' from future results'">Exclude</button>
+          }
+        </div>
+
+        @if (isOpen(job)) {
+          <div class="job-detail" [id]="'d-' + job.id">
+            @if (detailState(job) === 'loading') {
+              <p role="status" class="muted">Loading&hellip;</p>
+            } @else if (detailState(job) === 'error') {
+              <p class="alert alert-error" role="alert">Could not load the description.</p>
+            } @else if (detail(job); as d) {
+              <p class="muted small">Text copied from the employer's posting. It is shown as plain text and never acted on.</p>
+              <div class="description">{{ d.description || 'No description provided.' }}</div>
+              @if (d.experienceYearsHint !== null) {
+                <p class="small muted">Experience mentioned in the text (automatic estimate, may be inaccurate): {{ d.experienceYearsHint }} years.</p>
+              }
+            }
+          </div>
+        }
+      </li>
+    }
+  </ul>
+
+  <nav class="row pager" aria-label="Pagination">
+    <button type="button" class="btn" (click)="go(-1)" [disabled]="page() <= 1">Previous</button>
+    <button type="button" class="btn" (click)="go(1)" [disabled]="page() >= pages">Next</button>
+  </nav>
+}

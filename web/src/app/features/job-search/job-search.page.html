@@ -1,0 +1,152 @@
+<header class="page-header">
+  <h1>Job Search</h1>
+  <p class="muted">Choose which company job boards to read, then run a search. New jobs appear under Job Opportunities.</p>
+</header>
+
+<p class="note">
+  CareerPilot reads the <strong>public job boards of the companies you list</strong> (Greenhouse, Lever and Ashby feeds). It does not search
+  LinkedIn or Indeed, which offer no public search access. Nothing is ever applied to from here.
+</p>
+
+@if (loading()) {
+  <p role="status" class="muted">Loading your job sources&hellip;</p>
+} @else if (loadError()) {
+  <div class="alert alert-error" role="alert">
+    <p>{{ loadError() }}</p>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+} @else {
+  <section class="card" aria-labelledby="run-h">
+    <h2 id="run-h">Run a search</h2>
+    <div class="row">
+      <button type="button" class="btn btn-primary" (click)="startSearch()" [disabled]="searching()">
+        {{ searching() ? 'Searching…' : 'Search now' }}
+      </button>
+    </div>
+    <div aria-live="polite" class="run-status">
+      @if (runError()) {
+        <p class="alert alert-error" role="alert">{{ runError() }}</p>
+      }
+      @if (latestRun; as run) {
+        <p>
+          <strong>{{ runSummary(run) }}</strong>
+          <span class="muted small"> Started {{ run.createdAt | date: 'd MMM y, HH:mm' }}</span>
+        </p>
+        @if (!isActive(run)) {
+          <ul class="run-counts">
+            <li>{{ run.companiesSucceeded }} of {{ run.companiesTotal }} boards read</li>
+            <li>{{ run.jobsFetched }} jobs seen</li>
+            <li>{{ run.jobsNew }} new</li>
+            <li>{{ run.jobsUpdated }} updated</li>
+            <li>{{ run.jobsClosed }} no longer listed</li>
+          </ul>
+        }
+        @if (run.errors.length > 0) {
+          <div class="alert alert-error">
+            <p><strong>Some boards could not be read:</strong></p>
+            <ul>
+              @for (err of run.errors; track err) {
+                <li>{{ err }}</li>
+              }
+            </ul>
+          </div>
+        }
+      } @else {
+        <p class="muted">No search has been run yet.</p>
+      }
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="boards-h">
+    <h2 id="boards-h">Company boards</h2>
+    @if (listError()) {
+      <p class="alert alert-error" role="alert">{{ listError() }}</p>
+    }
+    @if (companies().length === 0) {
+      <p class="empty">No company boards yet. Add one below.</p>
+    } @else {
+      <ul class="board-list">
+        @for (c of companies(); track c.id) {
+          <li class="item">
+            <div class="item-head">
+              <div>
+                <h3>{{ c.name }}</h3>
+                <span class="muted small">{{ c.kind }} &middot; <code>{{ c.boardToken }}</code>@if (c.useEuEndpoint) { &middot; EU }</span>
+              </div>
+              <div class="check">
+                <input type="checkbox" [id]="'en-' + c.id" [checked]="c.isEnabled" (change)="toggle(c)" />
+                <label [for]="'en-' + c.id">Include in searches</label>
+              </div>
+            </div>
+            <p class="small muted">
+              @if (c.lastSuccessAt) {
+                Last read {{ c.lastSuccessAt | date: 'd MMM y, HH:mm' }}@if (c.lastJobCount !== null) { &middot; {{ c.lastJobCount }} jobs on the board }
+              } @else {
+                Not read yet.
+              }
+            </p>
+            @if (c.lastError) {
+              <p class="alert alert-error small" role="status">Last attempt failed: {{ c.lastError }}</p>
+            }
+            @if (testResult(c); as t) {
+              <p class="alert small" [class.alert-ok]="t.ok" [class.alert-error]="!t.ok" role="status">
+                @if (t.ok) { This board works: {{ t.jobCount }} jobs found. } @else { Test failed: {{ t.error }} }
+              </p>
+            }
+            <div class="row">
+              <button type="button" class="btn btn-small" (click)="test(c)" [disabled]="isTesting(c)" [attr.aria-label]="'Test ' + c.name">
+                {{ isTesting(c) ? 'Testing…' : 'Test board' }}
+              </button>
+              @if (confirmRemove() === c.id) {
+                <button type="button" class="btn btn-small btn-danger" (click)="remove(c)" [attr.aria-label]="'Confirm removing ' + c.name">
+                  Confirm remove
+                </button>
+                <button type="button" class="btn btn-small" (click)="confirmRemove.set(null)">Cancel</button>
+              } @else {
+                <button type="button" class="btn btn-small btn-danger" (click)="askRemove(c)" [attr.aria-label]="'Remove ' + c.name">Remove</button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="card" aria-labelledby="add-h">
+    <h2 id="add-h">Add a company board</h2>
+    @if (addError()) {
+      <p class="alert alert-error" role="alert">{{ addError() }}</p>
+    }
+    <form [formGroup]="form" (ngSubmit)="add()" novalidate>
+      <div class="grid">
+        <div class="field">
+          <label for="c-name">Company name</label>
+          <input id="c-name" type="text" formControlName="name" [attr.aria-invalid]="fieldError('name') ? true : null" aria-describedby="c-name-err" />
+          @if (fieldError('name'); as err) { <p class="field-error" id="c-name-err">{{ err }}</p> }
+        </div>
+        <div class="field">
+          <label for="c-kind">Job board system</label>
+          <select id="c-kind" formControlName="kind">
+            @for (k of kinds; track k) { <option [value]="k">{{ k }}</option> }
+          </select>
+        </div>
+        <div class="field">
+          <label for="c-token">Board token</label>
+          <input id="c-token" type="text" formControlName="boardToken" autocapitalize="none" spellcheck="false"
+            [attr.aria-invalid]="fieldError('boardToken') ? true : null" aria-describedby="c-token-help c-token-err" />
+          <span class="muted small" id="c-token-help">{{ tokenHelp[selectedKind] }}</span>
+          @if (fieldError('boardToken'); as err) { <p class="field-error" id="c-token-err">{{ err }}</p> }
+        </div>
+      </div>
+      @if (selectedKind === 'Lever') {
+        <div class="check">
+          <input id="c-eu" type="checkbox" formControlName="useEuEndpoint" />
+          <label for="c-eu">This company uses Lever's EU data centre</label>
+        </div>
+      }
+      <div class="row">
+        <button type="submit" class="btn btn-primary" [disabled]="adding()">{{ adding() ? 'Adding…' : 'Add company' }}</button>
+      </div>
+    </form>
+  </section>
+}

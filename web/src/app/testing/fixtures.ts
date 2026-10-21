@@ -33,3 +33,35 @@ export function sampleProfile(overrides: Partial<ProfileDto> = {}): ProfileDto {
     ...overrides,
   };
 }
+
+import type { CompanyDto, JobSummaryDto, SearchRunDto } from '../core/models';
+
+export function sampleCompany(overrides: Partial<CompanyDto> = {}): CompanyDto {
+  return {
+    id: 'c1', name: 'Datadog', kind: 'Greenhouse', boardToken: 'datadog', useEuEndpoint: false, isEnabled: true,
+    lastSyncAt: '2026-10-20T10:00:00Z', lastSuccessAt: '2026-10-20T10:00:00Z', lastError: null, lastJobCount: 42,
+    ...overrides,
+  };
+}
+
+export function sampleRun(overrides: Partial<SearchRunDto> = {}): SearchRunDto {
+  return {
+    id: 'r1', trigger: 'Manual', status: 'Succeeded', createdAt: '2026-10-20T10:00:00Z', startedAt: '2026-10-20T10:00:01Z',
+    finishedAt: '2026-10-20T10:00:09Z', companiesTotal: 2, companiesSucceeded: 2, jobsFetched: 10, jobsNew: 4,
+    jobsUpdated: 1, jobsClosed: 0, errors: [],
+    ...overrides,
+  };
+}
+
+export function sampleJob(overrides: Partial<JobSummaryDto> = {}): JobSummaryDto {
+  return {
+    id: 'j1', title: 'Backend Engineer', companyName: 'Datadog', locationText: 'Paris, France', country: 'France', city: 'Paris',
+    workMode: null, employmentType: 'Full time', status: 'Open', geoFit: 'Match', geoNote: null, isRelevant: true,
+    filterReasons: [], seniority: 'Unspecified', skills: ['C#', 'PostgreSQL'], publishedAt: '2026-09-01T00:00:00Z',
+    discoveredAt: '2026-10-01T00:00:00Z', lastVerifiedAt: '2026-10-20T00:00:00Z', applicationDeadline: null,
+    salaryMin: null, salaryMax: null, salaryCurrency: null, salaryPeriod: null, decision: 'None', language: 'en',
+    mentionsSponsorship: false, mentionsRelocation: false, sourceUrl: 'https://careers.example.test/1',
+    applyUrl: 'https://careers.example.test/1/apply', sources: ['Greenhouse'],
+    ...overrides,
+  };
+}

@@ -150,3 +150,17 @@ textarea { resize: vertical; }
 .login-card { width: 100%; max-width: 380px; }
 
 @media (prefers-reduced-motion: no-preference) { .meter-fill { transition: width .3s; } }
+
+/* Job search and opportunities */
+.board-list, .job-list { list-style: none; margin: 0; padding: 0; }
+.run-status { margin-top: .75rem; }
+.run-counts { list-style: none; margin: .25rem 0 .75rem; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; color: var(--muted); }
+.job h2 { font-size: 1.1rem; margin: 0; overflow-wrap: anywhere; }
+.job p { margin: .35rem 0; }
+.job-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.job-filtered { border-style: dashed; background: #fbfbfc; }
+.job .tags { margin: .5rem 0; }
+.job .tag-warn, .tags .tag-warn { background: #fff1d6; color: #5c3600; }
+.job-detail { margin-top: .75rem; border-top: 1px solid var(--line); padding-top: .75rem; }
+.description { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow-y: auto; background: #fbfcfd; border: 1px solid var(--line); border-radius: var(--radius); padding: .75rem; }
+.pager { justify-content: space-between; margin-bottom: 2rem; }

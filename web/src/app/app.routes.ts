@@ -32,6 +32,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/profile/profile.page').then((m) => m.ProfilePage),
         canDeactivate: [(c: { canDeactivate(): boolean }) => c.canDeactivate()],
       },
+      {
+        path: 'job-search',
+        title: 'Job Search | CareerPilot AI',
+        loadComponent: () => import('./features/job-search/job-search.page').then((m) => m.JobSearchPage),
+      },
+      {
+        path: 'opportunities',
+        title: 'Job Opportunities | CareerPilot AI',
+        loadComponent: () => import('./features/opportunities/opportunities.page').then((m) => m.OpportunitiesPage),
+      },
       ...placeholders,
     ],
   },
