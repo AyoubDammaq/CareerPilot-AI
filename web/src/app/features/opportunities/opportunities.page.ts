@@ -27,6 +27,8 @@ export class OpportunitiesPage {
   readonly error = signal<string | null>(null);
   readonly actionError = signal<string | null>(null);
   readonly rescoring = signal(false);
+  readonly started = signal<Record<string, string>>({});
+  readonly startErrors = signal<Record<string, string>>({});
   readonly cvs = signal<Record<string, DocumentDto>>({});
   readonly letters = signal<Record<string, CoverLetterDto>>({});
   readonly letterText = signal<Record<string, string>>({});
@@ -211,6 +213,14 @@ export class OpportunitiesPage {
         });
         this.analysisErrors.update((all) => ({ ...all, [job.id]: problemMessage(e, 'The AI analysis failed.') }));
       },
+    });
+  }
+
+  startApplication(job: JobSummaryDto): void {
+    this.startErrors.update((e) => ({ ...e, [job.id]: '' }));
+    this.api.startApplication(job.id).subscribe({
+      next: (a) => this.started.update((s) => ({ ...s, [job.id]: a.status })),
+      error: (e: unknown) => this.startErrors.update((all) => ({ ...all, [job.id]: problemMessage(e, 'Could not start the application.') })),
     });
   }
 

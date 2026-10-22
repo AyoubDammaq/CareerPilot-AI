@@ -42,6 +42,11 @@ export const routes: Routes = [
         title: 'Job Opportunities | CareerPilot AI',
         loadComponent: () => import('./features/opportunities/opportunities.page').then((m) => m.OpportunitiesPage),
       },
+      {
+        path: 'application-review',
+        title: 'Application Review | CareerPilot AI',
+        loadComponent: () => import('./features/application-review/application-review.page').then((m) => m.ApplicationReviewPage),
+      },
       ...placeholders,
     ],
   },

@@ -34,7 +34,7 @@ export function sampleProfile(overrides: Partial<ProfileDto> = {}): ProfileDto {
   };
 }
 
-import type { CompanyDto, JobSummaryDto, SearchRunDto } from '../core/models';
+import type { ApplicationDto, CompanyDto, JobSummaryDto, SearchRunDto } from '../core/models';
 
 export function sampleCompany(overrides: Partial<CompanyDto> = {}): CompanyDto {
   return {
@@ -65,3 +65,28 @@ export function sampleJob(overrides: Partial<JobSummaryDto> = {}): JobSummaryDto
     ...overrides,
   };
 }
+
+export function sampleApplication(overrides: Partial<ApplicationDto> = {}): ApplicationDto {
+  return {
+    id: 'a1', jobId: 'j1', jobTitle: 'Backend Engineer', companyName: 'Datadog', applyUrl: 'https://careers.example.test/1/apply',
+    jobStatus: 'Open', status: 'Shortlisted', cvDocumentId: null, coverLetterDocumentId: null, createdAt: '2026-10-21T10:00:00Z',
+    approvedAt: null, submittedAt: null, submissionNote: null, approvedBundleHash: null, allowedNext: ['AwaitingApproval', 'Withdrawn'], review: null,
+    ...overrides,
+  };
+}
+
+export const sampleReview: NonNullable<ApplicationDto['review']> = {
+  bundleHash: 'abcdef0123456789abcdef',
+  cv: {
+    fullName: 'Ayoub Test', headline: '', email: 'a@example.test', phone: null, location: '', links: [], summary: '',
+    experience: [{ title: 'Engineer', company: 'Sagemcom', location: '', period: 'Oct 2025 – Present', description: '', achievements: [] }],
+    education: [], skills: ['C#'], projects: [], languages: [],
+  },
+  letter: {
+    fullName: 'Ayoub Test', email: 'a@example.test', phone: null, location: '', company: 'Datadog', jobTitle: 'Backend Engineer',
+    greeting: 'Dear Hiring Team,', paragraphs: ['First paragraph.', 'Second paragraph.'], closing: 'Kind regards', source: 'ai:m',
+  },
+  claims: { flags: [], clean: true },
+  blockers: [],
+  documentsStale: false,
+};

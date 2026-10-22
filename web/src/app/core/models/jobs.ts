@@ -225,3 +225,41 @@ export interface CoverLetterDto {
   letter: CoverLetterContent;
   claims: ClaimCheck;
 }
+
+export interface ApplicationReview {
+  bundleHash: string | null;
+  cv: CvContent | null;
+  letter: CoverLetterContent | null;
+  claims: ClaimCheck | null;
+  blockers: string[];
+  documentsStale: boolean;
+}
+
+export interface ApplicationDto {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  companyName: string;
+  applyUrl: string;
+  jobStatus: string;
+  status: string;
+  cvDocumentId: string | null;
+  coverLetterDocumentId: string | null;
+  createdAt: string;
+  approvedAt: string | null;
+  submittedAt: string | null;
+  submissionNote: string | null;
+  approvedBundleHash: string | null;
+  allowedNext: string[];
+  review: ApplicationReview | null;
+}
+
+export interface DocumentSummaryDto {
+  id: string;
+  kind: 'Cv' | 'CoverLetter';
+  title: string;
+  createdAt: string;
+  contentHash: string;
+  stale: boolean;
+  source: string | null;
+}

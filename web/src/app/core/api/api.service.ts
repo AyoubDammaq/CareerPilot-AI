@@ -7,7 +7,9 @@ import {
   CompanyInput,
   CompanyTestResult,
   DashboardDto,
+  ApplicationDto,
   CoverLetterDto,
+  DocumentSummaryDto,
   DocumentDto,
   JobAnalysisDto,
   JobDetailDto,
@@ -103,6 +105,42 @@ export class ApiService {
 
   reviseCoverLetter(documentId: string, paragraphs: string[]): Observable<CoverLetterDto> {
     return this.http.post<CoverLetterDto>(`${this.base}/documents/${documentId}/revise`, { paragraphs });
+  }
+
+  startApplication(jobId: string): Observable<ApplicationDto> {
+    return this.http.post<ApplicationDto>(`${this.base}/jobs/${jobId}/application`, {});
+  }
+
+  listApplications(): Observable<ApplicationDto[]> {
+    return this.http.get<ApplicationDto[]>(`${this.base}/applications`);
+  }
+
+  getApplication(id: string): Observable<ApplicationDto> {
+    return this.http.get<ApplicationDto>(`${this.base}/applications/${id}`);
+  }
+
+  jobDocuments(jobId: string): Observable<DocumentSummaryDto[]> {
+    return this.http.get<DocumentSummaryDto[]>(`${this.base}/jobs/${jobId}/documents`);
+  }
+
+  setApplicationDocuments(id: string, cvDocumentId: string, coverLetterDocumentId: string | null): Observable<ApplicationDto> {
+    return this.http.put<ApplicationDto>(`${this.base}/applications/${id}/documents`, { cvDocumentId, coverLetterDocumentId });
+  }
+
+  applicationAction(id: string, action: 'request-review' | 'withdraw-approval' | 'ready' | 'confirm-submission'): Observable<ApplicationDto> {
+    return this.http.post<ApplicationDto>(`${this.base}/applications/${id}/${action}`, {});
+  }
+
+  approveApplication(id: string, bundleHash: string, acknowledgeFlags: boolean): Observable<ApplicationDto> {
+    return this.http.post<ApplicationDto>(`${this.base}/applications/${id}/approve`, { bundleHash, acknowledgeFlags });
+  }
+
+  recordSubmission(id: string, confirmed: boolean, note: string): Observable<ApplicationDto> {
+    return this.http.post<ApplicationDto>(`${this.base}/applications/${id}/submission`, { confirmed, note });
+  }
+
+  setApplicationStatus(id: string, status: string): Observable<ApplicationDto> {
+    return this.http.post<ApplicationDto>(`${this.base}/applications/${id}/status`, { status });
   }
 
   /** Downloads through HttpClient so the bearer token is sent (a plain link would not carry it). */

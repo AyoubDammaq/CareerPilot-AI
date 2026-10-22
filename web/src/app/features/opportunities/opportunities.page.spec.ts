@@ -258,6 +258,36 @@ describe('OpportunitiesPage', () => {
     });
   });
 
+  describe('start application', () => {
+    const openDetails = (f: ComponentFixture<OpportunitiesPage>) => {
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Why this score')) as HTMLButtonElement).click();
+      f.detectChanges();
+      ctrl.expectOne('/api/jobs/j1').flush({ summary: sampleJob(), description: 'x', experienceYearsHint: null, postings: [], match: null, analysis: null, aiAvailable: false });
+      f.detectChanges();
+    };
+
+    it('starts the review flow, says nothing is sent, and links to Application Review', () => {
+      const f = create();
+      openDetails(f);
+      expect(el(f).querySelector('[aria-label="Application"]')!.textContent).toContain('Nothing is sent');
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Start application')) as HTMLButtonElement).click();
+      ctrl.expectOne((r) => r.method === 'POST' && r.url === '/api/jobs/j1/application').flush({ id: 'a1', status: 'Shortlisted' });
+      f.detectChanges();
+      const link = el(f).querySelector('[aria-label="Application"] a')!;
+      expect(link.getAttribute('href')).toBe('/application-review');
+      expect(Array.from(el(f).querySelectorAll('button')).some((b) => b.textContent!.includes('Start application'))).toBe(false);
+    });
+
+    it('shows the server message when it cannot start', () => {
+      const f = create();
+      openDetails(f);
+      (Array.from(el(f).querySelectorAll('button')).find((b) => b.textContent!.includes('Start application')) as HTMLButtonElement).click();
+      ctrl.expectOne((r) => r.url === '/api/jobs/j1/application').flush({ title: 'Job not found.', status: 404 }, { status: 404, statusText: 'Not Found' });
+      f.detectChanges();
+      expect(el(f).querySelector('[aria-label="Application"] [role="alert"]')!.textContent).toContain('Job not found.');
+    });
+  });
+
   describe('tailored CV', () => {
     const cvDoc = (over: object = {}) => ({
       id: 'd1', jobId: 'j1', kind: 'Cv', title: 'CV', createdAt: '2026-10-21T10:00:00Z', contentHash: 'abcdef1234567890', stale: false,

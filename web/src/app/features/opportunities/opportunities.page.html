@@ -270,6 +270,18 @@
               @if (analysisErrors()[job.id]) {
                 <p class="alert alert-error" role="alert">{{ analysisErrors()[job.id] }}</p>
               }
+              <section class="apply" aria-label="Application">
+                <h3>Apply</h3>
+                @if (started()[job.id]) {
+                  <p class="alert small" role="status">Application started. Continue in <a routerLink="/application-review">Application Review</a>.</p>
+                } @else {
+                  <p class="muted small">Starts the review flow: you pick the documents, read them, approve, and submit on the employer's site yourself. Nothing is sent.</p>
+                  <button type="button" class="btn btn-small" (click)="startApplication(job)">Start application</button>
+                }
+                @if (startErrors()[job.id]) {
+                  <p class="alert alert-error" role="alert">{{ startErrors()[job.id] }}</p>
+                }
+              </section>
               <section class="cv" aria-label="Tailored CV">
                 <h3>Tailored CV</h3>
                 <p class="muted small">

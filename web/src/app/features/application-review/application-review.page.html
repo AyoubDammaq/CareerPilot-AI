@@ -1,0 +1,218 @@
+<header class="page-header">
+  <h1>Application Review</h1>
+  <p class="muted">
+    Nothing is ever sent for you. You choose the documents, read exactly what will go out, approve it, then submit on the employer's own site yourself and tell CareerPilot what happened.
+    Changing a document after approval withdraws the approval.
+  </p>
+</header>
+
+@if (loading()) {
+  <p role="status" class="muted">Loading&hellip;</p>
+} @else if (error()) {
+  <div class="alert alert-error" role="alert">
+    <p>{{ error() }}</p>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+} @else if (apps().length === 0) {
+  <section class="card">
+    <p class="empty">No applications yet.</p>
+    <p class="muted small">Open a job on <a routerLink="/opportunities">Job Opportunities</a> and choose "Start application".</p>
+  </section>
+} @else {
+  <ul class="job-list">
+    @for (app of apps(); track app.id) {
+      <li class="card job">
+        <div class="job-head">
+          <div>
+            <h2>{{ app.jobTitle }}</h2>
+            <p class="muted">{{ app.companyName }}</p>
+          </div>
+          <span class="badge" [class.tag-warn]="app.status === 'AwaitingApproval' || app.status === 'SubmissionUnconfirmed'">{{ statusLabel(app.status) }}</span>
+        </div>
+        @if (app.jobStatus === 'Closed' || app.jobStatus === 'Expired') {
+          <p class="alert alert-error small">This posting is no longer open.</p>
+        }
+        <div class="row">
+          <button type="button" class="btn btn-small" (click)="toggle(app)" [attr.aria-expanded]="open() === app.id" [attr.aria-controls]="'app-' + app.id">
+            {{ open() === app.id ? 'Close' : 'Open' }}
+          </button>
+        </div>
+
+        @if (open() === app.id) {
+          <div class="job-detail" [id]="'app-' + app.id">
+            @if (d(app); as a) {
+              @if (errors()[app.id]) {
+                <p class="alert alert-error" role="alert">{{ errors()[app.id] }}</p>
+              }
+
+              <!-- 1. documents -->
+              @if (a.status === 'Shortlisted' || a.status === 'AwaitingApproval' || a.status === 'Approved' || a.status === 'ReadyToSubmit') {
+                <section class="cv" aria-label="Documents">
+                  <h3>Documents</h3>
+                  @if (cvDocs(a).length === 0) {
+                    <p class="muted small">
+                      No CV has been prepared for this job yet. Open the job on <a routerLink="/opportunities">Job Opportunities</a>, prepare a CV (and optionally a cover letter), then come back.
+                    </p>
+                  } @else {
+                    <div class="field">
+                      <label [for]="'cv-' + app.id">CV</label>
+                      <select [id]="'cv-' + app.id" (change)="pick(app, 'cv', $any($event.target).value)">
+                        <option value="">Choose a CV</option>
+                        @for (c of cvDocs(a); track c.id) {
+                          <option [value]="c.id" [selected]="choice()[app.id]?.cv === c.id">
+                            {{ c.createdAt | date: 'd MMM y, HH:mm' }} ({{ c.contentHash.slice(0, 8) }}){{ c.stale ? ' - profile changed since' : '' }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label [for]="'cl-' + app.id">Cover letter (optional)</label>
+                      <select [id]="'cl-' + app.id" (change)="pick(app, 'letter', $any($event.target).value)">
+                        <option value="">No cover letter</option>
+                        @for (c of letterDocs(a); track c.id) {
+                          <option [value]="c.id" [selected]="choice()[app.id]?.letter === c.id">
+                            {{ c.createdAt | date: 'd MMM y, HH:mm' }} ({{ c.contentHash.slice(0, 8) }}) {{ c.source === 'owner' ? 'edited by you' : 'AI draft' }}{{ c.stale ? ' - profile changed since' : '' }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="row">
+                      <button type="button" class="btn btn-small" (click)="useDocuments(app)" [disabled]="isBusy(app)">Use these documents</button>
+                      @if (a.status === 'Shortlisted' && a.cvDocumentId) {
+                        <button type="button" class="btn btn-small" (click)="requestReview(app)" [disabled]="isBusy(app)">Review before approval</button>
+                      }
+                    </div>
+                    @if (a.status === 'Approved' || a.status === 'ReadyToSubmit') {
+                      <p class="muted small">Choosing different documents withdraws your approval so you can review them again.</p>
+                    }
+                  }
+                </section>
+              }
+
+              <!-- 2. review and approval -->
+              @if ((a.status === 'AwaitingApproval' || a.status === 'Approved' || a.status === 'ReadyToSubmit') && a.review; as r) {
+                <section class="match" aria-label="What will be sent">
+                  <h3>What you are approving</h3>
+                  <p class="muted small">Fingerprint {{ r.bundleHash?.slice(0, 12) }}. It changes if anything in the documents changes.</p>
+                  @for (b of r.blockers; track b) {
+                    <p class="alert alert-error small" role="alert">{{ b }}</p>
+                  }
+                  @if (r.cv; as cv) {
+                    <p class="small">
+                      <strong>CV:</strong> {{ cv.fullName }}, {{ cv.email }}. {{ cv.experience.length }} experience, {{ cv.skills.length }} skills,
+                      {{ cv.projects.length }} projects.
+                    </p>
+                    @if (cv.skills.length > 0) { <p class="small"><strong>Skills on the CV:</strong> {{ cv.skills.join(', ') }}</p> }
+                    @for (e of cv.experience; track e.company + e.title) {
+                      <p class="small">{{ e.title }}, {{ e.company }} ({{ e.period }})</p>
+                    }
+                  }
+                  @if (r.letter; as l) {
+                    <p class="small"><strong>Cover letter</strong> ({{ l.source === 'owner' ? 'edited by you' : 'AI draft' }}):</p>
+                    <div class="description">{{ l.greeting }}
+
+{{ l.paragraphs.join('\n\n') }}
+
+{{ l.closing }}</div>
+                    @if (r.claims && !r.claims.clean) {
+                      <div class="alert alert-error small" role="alert">
+                        <p><strong>Unsupported claims flagged in the letter:</strong></p>
+                        <ul>@for (f of r.claims.flags; track f.message) { <li>{{ f.message }}</li> }</ul>
+                      </div>
+                    }
+                  } @else {
+                    <p class="small muted">No cover letter attached.</p>
+                  }
+
+                  @if (a.status === 'AwaitingApproval') {
+                    <div class="check">
+                      <input [id]="'read-' + app.id" type="checkbox" [checked]="readAck()[app.id]" (change)="setReadAck(app, $event)" />
+                      <label [for]="'read-' + app.id">I have read exactly these documents and I approve sending them.</label>
+                    </div>
+                    @if (r.claims && !r.claims.clean) {
+                      <div class="check">
+                        <input [id]="'flag-' + app.id" type="checkbox" [checked]="flagAck()[app.id]" (change)="setFlagAck(app, $event)" />
+                        <label [for]="'flag-' + app.id">I accept responsibility for the flagged claims above.</label>
+                      </div>
+                    }
+                    <div class="row">
+                      <button type="button" class="btn" (click)="approve(app)" [disabled]="isBusy(app) || !canApprove(app)">Approve</button>
+                    </div>
+                  }
+                  @if (a.status === 'Approved') {
+                    <p class="alert small" role="status">Approved {{ a.approvedAt | date: 'd MMM y, HH:mm' }}. Nothing has been sent.</p>
+                    <div class="row">
+                      <button type="button" class="btn" (click)="markReady(app)" [disabled]="isBusy(app)">Mark ready to submit</button>
+                      <button type="button" class="btn btn-small" (click)="withdrawApproval(app)" [disabled]="isBusy(app)">Withdraw approval</button>
+                    </div>
+                  }
+                </section>
+              }
+
+              <!-- 3. guided manual submission -->
+              @if (a.status === 'ReadyToSubmit') {
+                <section class="letter" aria-label="Submit it yourself">
+                  <h3>Submit it yourself</h3>
+                  <p class="small">CareerPilot does not contact employers. Do these steps, then tell it what happened.</p>
+                  <ol class="small">
+                    <li>Download the approved documents below.</li>
+                    <li>Open the employer's application page and fill it in yourself.</li>
+                    <li>Upload exactly these files. Do not edit them first, or they will no longer be what you approved.</li>
+                    <li>Come back and record the result.</li>
+                  </ol>
+                  <div class="row">
+                    <button type="button" class="btn btn-small" (click)="download(app, a.cvDocumentId)" [disabled]="isBusy(app)">Download CV (.docx)</button>
+                    @if (a.coverLetterDocumentId) {
+                      <button type="button" class="btn btn-small" (click)="download(app, a.coverLetterDocumentId)" [disabled]="isBusy(app)">Download cover letter (.docx)</button>
+                    }
+                    @if (a.applyUrl) {
+                      <a class="btn btn-small" [href]="a.applyUrl" target="_blank" rel="noopener noreferrer">Open the employer's application page (new tab)</a>
+                    }
+                  </div>
+                  <div class="field">
+                    <label [for]="'note-' + app.id">Note (optional, for your own records)</label>
+                    <input [id]="'note-' + app.id" type="text" maxlength="500" (input)="setNote(app, $event)" />
+                  </div>
+                  <div class="row">
+                    <button type="button" class="btn" (click)="submitted(app, true)" [disabled]="isBusy(app)">I submitted it and saw a confirmation</button>
+                    <button type="button" class="btn btn-small" (click)="submitted(app, false)" [disabled]="isBusy(app)">I submitted it but I am not sure it went through</button>
+                    <button type="button" class="btn btn-small" (click)="withdrawApproval(app)" [disabled]="isBusy(app)">Back to review</button>
+                  </div>
+                </section>
+              }
+
+              @if (a.status === 'SubmissionUnconfirmed') {
+                <section class="letter">
+                  <p class="alert alert-error small">You said you were not sure this went through. Check your email or the employer's site.</p>
+                  <button type="button" class="btn" (click)="confirmSubmission(app)" [disabled]="isBusy(app)">I have confirmed it went through</button>
+                </section>
+              }
+
+              @if (a.submittedAt) {
+                <p class="small">Submitted {{ a.submittedAt | date: 'd MMM y' }} (as reported by you).{{ a.submissionNote ? ' Note: ' + a.submissionNote : '' }}</p>
+              }
+
+              <!-- 4. what happens next -->
+              @if (isPostSubmission(a) || a.status === 'SubmissionUnconfirmed') {
+                <div class="row" aria-label="Update status">
+                  @for (n of a.allowedNext; track n) {
+                    <button type="button" class="btn btn-small" (click)="setStatus(app, n)" [disabled]="isBusy(app)">{{ statusLabel(n) }}</button>
+                  }
+                </div>
+              } @else if (a.allowedNext.includes('Withdrawn')) {
+                <div class="row">
+                  <button type="button" class="btn btn-small btn-danger" (click)="setStatus(app, 'Withdrawn')" [disabled]="isBusy(app)">Withdraw this application</button>
+                </div>
+              }
+            } @else {
+              <p role="status" class="muted">Loading&hellip;</p>
+              @if (errors()[app.id]) {
+                <p class="alert alert-error" role="alert">{{ errors()[app.id] }}</p>
+              }
+            }
+          </div>
+        }
+      </li>
+    }
+  </ul>
+}
