@@ -110,7 +110,7 @@ Note: the starter profile has nothing marked verified, so your first CV will be 
 | Limits: statistics use the *current* status (an interview later rejected counts as rejected); there is no status history table; reminders cannot be snoozed or dismissed; no email, push or calendar notifications; no scheduler | Known |
 
 ## Not started (Phase 8 and later)
-Production hardening, scheduler and notifications (nothing is pushed to you yet) + submission, tracking/analytics, scheduler, notifications, production hardening.
+Production hardening, scheduler and notifications (nothing is pushed to you yet).
 
 ## Known limitations / honest notes
 - No official public search API for Indeed or LinkedIn; EURES and Wellfound official access unverified. Greenhouse/Lever/Ashby public feeds are per company, so a company watchlist is required. Official apply endpoints are employer-side, so MVP submission is a **guided manual flow with owner-reported confirmation**, not automated submission.
