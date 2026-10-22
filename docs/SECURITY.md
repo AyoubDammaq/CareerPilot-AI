@@ -21,7 +21,7 @@ CareerPilot AI is a **single-user** app that holds personal data (your profile, 
 | Everything needs sign-in | Fallback authorization policy: every endpoint requires a token unless it is explicitly anonymous (login and health) | Tested (CI) |
 | Response headers | API: `nosniff`, `DENY` framing, `no-referrer`, a CSP that allows nothing, `no-store` so browsers do not cache your data. Web server: the same plus a CSP that allows only this site's own scripts | API tested (CI). Web server headers checked in CI against the built image |
 | Browser policy vs the real app | The production build is loaded in real Chromium under the exact policy nginx sends; sign-in and five pages must work without violations | Tested (CI, `web/e2e/smoke.py`) |
-| Uploads | CV files up to 5 MB, PDF/DOCX/text only, read in memory and never stored; the whole request is capped at 7 MB | Tested (CI) |
+| Uploads | CV files up to 5 MB, PDF/DOCX/text only, read in memory and never stored; the whole request is capped at 7 MB (nginx and the API) | The 5 MB check is tested; the 7 MB caps are configuration only |
 | Secrets | Passwords, signing key and AI key come only from the environment (`.env`, never committed). CI fails if a credential-shaped string or a `.env` file is committed | Tested (CI) |
 | AI provider key | Never returned by any endpoint, never logged; provider error bodies are never shown | Tested (CI) |
 | Untrusted text | Job postings and CV text are fenced and treated as data; the model has no tools, so injected instructions cannot do anything | Tested with fake models only |

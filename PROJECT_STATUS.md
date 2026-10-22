@@ -109,16 +109,16 @@ Note: the starter profile has nothing marked verified, so your first CV will be 
 | Analytics: counts, reply rate, median days to reply, per-week submissions (8 weeks), by status, by country, by match-score band. Rates are blank (not zero) when nothing was submitted; fewer than `MinSampleForConclusions` (10) submitted shows a "too few to conclude" note | Unit-tested |
 | Limits: statistics use the *current* status (an interview later rejected counts as rejected); there is no status history table; reminders cannot be snoozed or dismissed; no email, push or calendar notifications; no scheduler | Known |
 
-## Phase 8 — Hardening (done 2026-10-22; CI result recorded below)
+## Phase 8 — Hardening (done 2026-10-22; CI green: 385 unit, 36 integration, 129 frontend, browser smoke, web image header check)
 | Item | State |
 |---|---|
 | **Bug found and fixed:** the sign-in form used `(ngSubmit)` without a form directive, so in the production build pressing "Sign in" reloaded the page and nothing happened. Unit tests had never exercised the real submit event (there was no login spec) | Fixed; 3 login tests; the browser smoke test would fail on it |
-| Browser smoke test of the production build in real Chromium under the strict Content-Security-Policy (sign-in + 5 pages, no violations); Angular's inline-critical-CSS script was disabled so the policy can forbid inline scripts | Passed locally; runs in CI |
-| API: security headers on every response, `no-store`, global and per-endpoint rate limits (login, costly endpoints), request-size cap, real client address behind nginx, failed-sign-in logging, example secrets refused, production start refuses to create tables without migrations | Integration and unit tests (CI) |
+| Browser smoke test of the production build in real Chromium under the strict Content-Security-Policy (sign-in + 5 pages, no violations); Angular's inline-critical-CSS script was disabled so the policy can forbid inline scripts | Passed locally and in CI |
+| API: security headers on every response, `no-store`, global and per-endpoint rate limits (login, costly endpoints), request-size cap, real client address behind nginx, failed-sign-in logging, example secrets refused, production start refuses to create tables without migrations | Tested (CI). The 7 MB body cap is Kestrel configuration, not exercised by the in-memory test server |
 | nginx: security headers in **every** location (previously dropped from asset and API locations by nginx's header inheritance rule), CSP, `server_tokens off`, 7 MB body cap | Checked in CI against the built image |
 | Compose: `no-new-privileges`, API `cap_drop: ALL`, AI and security settings passed through, validated in CI | Syntax only. **Never run with Docker** |
 | `scripts/backup.sh` / `restore.sh`: verified dump, owner-only files, retention, typed confirmation | Run against a real PostgreSQL 16 with a stand-in for `docker compose exec`; the Docker call itself untested |
-| CI: committed-credential scan, NuGet and npm vulnerability reports (non-blocking), Dependabot | Configured |
+| CI: committed-credential scan, NuGet and npm vulnerability reports (non-blocking), Dependabot | CI scan passes. The vulnerability reports run but their output was not read by me; Dependabot opened 9 update PRs (including major bumps such as TypeScript 7), none merged |
 | Docs: `docs/SECURITY.md` (what is and is not protected), `docs/OPERATIONS.md` (HTTPS, backups, updates, settings) | Written |
 | Not built: second factor, token revocation, data export or delete, audit-log viewer, scheduler and notifications | Known |
 
