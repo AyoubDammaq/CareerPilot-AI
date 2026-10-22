@@ -23,15 +23,22 @@ public interface ICvRenderer
     byte[] RenderDocx(CoverLetterContent letter);
 }
 
+public interface IPdfRenderer
+{
+    byte[] RenderPdf(CvContent cv);
+    byte[] RenderPdf(CoverLetterContent letter);
+}
+
 public sealed record DocumentDto(
     Guid Id, Guid JobId, string Kind, string Title, DateTimeOffset CreatedAt, string ContentHash, bool Stale,
     CvContent Content, CvReport? Report);
 
 public sealed record DocumentFile(byte[] Bytes, string FileName, string ContentType);
 
-public sealed class DocumentService(IJobStore jobs, IProfileStore profiles, IDocumentStore docs, ICvRenderer renderer, IAuditLog audit)
+public sealed class DocumentService(IJobStore jobs, IProfileStore profiles, IDocumentStore docs, ICvRenderer renderer, IAuditLog audit, IPdfRenderer? pdf = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    public const string PdfType = "application/pdf";
     public const string DocxType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
     public async Task<DocumentDto> CreateCvAsync(Guid jobId, CancellationToken ct)
@@ -65,26 +72,34 @@ public sealed class DocumentService(IJobStore jobs, IProfileStore profiles, IDoc
         return ToDto(doc, content, null, stale: profile is not null && profile.Version != doc.ProfileVersion);
     }
 
-    public async Task<DocumentFile> DownloadDocxAsync(Guid id, CancellationToken ct)
+    public Task<DocumentFile> DownloadDocxAsync(Guid id, CancellationToken ct) => DownloadAsync(id, "docx", ct);
+
+    /// <summary>Renders the stored snapshot. <paramref name="format"/> is "docx" (default) or "pdf"; anything else is refused.</summary>
+    public async Task<DocumentFile> DownloadAsync(Guid id, string? format, CancellationToken ct)
     {
+        var asPdf = string.Equals(format, "pdf", StringComparison.OrdinalIgnoreCase);
+        if (!asPdf && !string.IsNullOrWhiteSpace(format) && !string.Equals(format, "docx", StringComparison.OrdinalIgnoreCase))
+            throw new ValidationFailedException(new Dictionary<string, string[]> { ["format"] = ["Use format=docx or format=pdf."] });
+        if (asPdf && pdf is null) throw new ConflictException("PDF export is not available on this server.");
         var doc = await docs.GetAsync(id, ct) ?? throw new NotFoundException("Document not found.");
         byte[] bytes;
         string name;
         if (doc.Kind == DocumentKind.CoverLetter)
         {
             var letter = JsonSerializer.Deserialize<CoverLetterContent>(doc.ContentJson, Json) ?? throw new NotFoundException("Document not found.");
-            bytes = renderer.RenderDocx(letter);
+            bytes = asPdf ? pdf!.RenderPdf(letter) : renderer.RenderDocx(letter);
             name = LetterFileName(letter, doc);
         }
         else
         {
             var content = JsonSerializer.Deserialize<CvContent>(doc.ContentJson, Json) ?? throw new NotFoundException("Document not found.");
-            bytes = renderer.RenderDocx(content);
+            bytes = asPdf ? pdf!.RenderPdf(content) : renderer.RenderDocx(content);
             name = FileName(content, doc);
         }
         audit.Stage("owner", doc.Kind == DocumentKind.CoverLetter ? "document.letter.downloaded" : "document.cv.downloaded", nameof(GeneratedDocument), doc.Id, null);
         await docs.SaveChangesAsync(ct);
-        return new DocumentFile(bytes, name, DocxType);
+        if (asPdf) name = Path.ChangeExtension(name, ".pdf");
+        return new DocumentFile(bytes, name, asPdf ? PdfType : DocxType);
     }
 
     public static string LetterFileName(CoverLetterContent c, GeneratedDocument d)

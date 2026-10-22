@@ -28,6 +28,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentStore, EfDocumentStore>();
         services.AddScoped<IApplicationStore, EfApplicationStore>();
         services.AddSingleton<ICvRenderer, DocxCvRenderer>();
+        services.AddSingleton<IPdfRenderer, PdfDocumentRenderer>();
         services.AddSingleton<CareerPilot.Application.Import.ITextExtractor, DocumentTextExtractor>();
 
         services.AddHttpClient<AnthropicLlmClient>((sp, c) => c.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<LlmOptions>().TimeoutSeconds));

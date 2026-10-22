@@ -206,6 +206,21 @@ describe('ApplicationReviewPage', () => {
       expect(link.getAttribute('rel')).toBe('noopener noreferrer');
     });
 
+    it('downloads the approved documents as PDF too', () => {
+      const app = ready();
+      const f = create([app]);
+      open(f, app);
+      const create$ = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+      const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+      btn(f, 'Download CV (PDF)')!.click();
+      ctrl.expectOne('/api/documents/cv1/download?format=pdf').flush(new Blob(['x']));
+      btn(f, 'Download cover letter (PDF)')!.click();
+      ctrl.expectOne('/api/documents/l1/download?format=pdf').flush(new Blob(['y']));
+      expect(create$).toHaveBeenCalledTimes(2);
+      create$.mockRestore();
+      revoke.mockRestore();
+    });
+
     it('downloads documents through the API', () => {
       const app = ready();
       const f = create([app]);

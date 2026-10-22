@@ -310,6 +310,7 @@
                   }
                   <div class="row">
                     <button type="button" class="btn btn-small" (click)="downloadCv(job)" [disabled]="isCvBusy(job)">Download .docx</button>
+                    <button type="button" class="btn btn-small" (click)="downloadCv(job, 'pdf')" [disabled]="isCvBusy(job)">Download PDF</button>
                     <button type="button" class="btn btn-small" (click)="prepareCv(job)" [disabled]="isCvBusy(job)">Prepare again</button>
                   </div>
                 } @else {
@@ -342,6 +343,7 @@
                   <div class="row">
                     <button type="button" class="btn btn-small" (click)="reviseLetter(job)" [disabled]="isLetterBusy(job) || !letterEdited(job)">Save my edits and re-check</button>
                     <button type="button" class="btn btn-small" (click)="downloadLetter(job)" [disabled]="isLetterBusy(job) || letterEdited(job)">Download .docx</button>
+                    <button type="button" class="btn btn-small" (click)="downloadLetter(job, 'pdf')" [disabled]="isLetterBusy(job) || letterEdited(job)">Download PDF</button>
                   </div>
                   @if (letterEdited(job)) {
                     <p class="muted small">Save your edits to re-check them and enable the download.</p>

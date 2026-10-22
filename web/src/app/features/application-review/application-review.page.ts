@@ -205,14 +205,14 @@ export class ApplicationReviewPage {
     this.run(app.id, () => this.api.setApplicationStatus(app.id, status), 'Could not change the status.');
   }
 
-  download(app: ApplicationDto, documentId: string | null): void {
+  download(app: ApplicationDto, documentId: string | null, format: 'docx' | 'pdf' = 'docx'): void {
     if (!documentId) return;
     this.busy.set(app.id);
-    this.api.downloadDocument(documentId).subscribe({
+    this.api.downloadDocument(documentId, format).subscribe({
       next: (res) => {
         this.busy.set(null);
         if (!res.body) return;
-        const name = /filename="?([A-Za-z0-9._-]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'document.docx';
+        const name = /filename="?([A-Za-z0-9._-]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? `document.${format}`;
         const url = URL.createObjectURL(res.body);
         const a = document.createElement('a');
         a.href = url;

@@ -327,6 +327,21 @@ describe('OpportunitiesPage', () => {
       expect(btn(f, 'Download .docx')).toBeDefined();
     });
 
+    it('downloads the CV as PDF', () => {
+      const f = create();
+      open(f);
+      btn(f, 'Prepare CV for this job')!.click();
+      ctrl.expectOne((r) => r.url === '/api/jobs/j1/documents/cv').flush(cvDoc());
+      f.detectChanges();
+      const create$ = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+      const revoke = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+      btn(f, 'Download PDF')!.click();
+      ctrl.expectOne('/api/documents/d1/download?format=pdf').flush(new Blob(['x']));
+      expect(create$).toHaveBeenCalled();
+      create$.mockRestore();
+      revoke.mockRestore();
+    });
+
     it('downloads through the API (so the token is sent)', () => {
       const f = create();
       open(f);

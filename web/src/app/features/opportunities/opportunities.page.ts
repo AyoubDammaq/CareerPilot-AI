@@ -239,15 +239,15 @@ export class OpportunitiesPage {
     });
   }
 
-  downloadCv(job: JobSummaryDto): void {
+  downloadCv(job: JobSummaryDto, format: 'docx' | 'pdf' = 'docx'): void {
     const doc = this.cvs()[job.id];
     if (!doc) return;
     this.setCvBusy(job.id, true);
-    this.api.downloadDocument(doc.id).subscribe({
+    this.api.downloadDocument(doc.id, format).subscribe({
       next: (res) => {
         this.setCvBusy(job.id, false);
         if (!res.body) return;
-        const name = /filename="?([A-Za-z0-9._-]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'CV.docx';
+        const name = /filename="?([A-Za-z0-9._-]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? `CV.${format}`;
         const url = URL.createObjectURL(res.body);
         const a = document.createElement('a');
         a.href = url;
@@ -292,15 +292,15 @@ export class OpportunitiesPage {
     this.letterText.update((t) => ({ ...t, [job.id]: value }));
   }
 
-  downloadLetter(job: JobSummaryDto): void {
+  downloadLetter(job: JobSummaryDto, format: 'docx' | 'pdf' = 'docx'): void {
     const letter = this.letters()[job.id];
     if (!letter) return;
     this.setLetterBusy(job.id, true);
-    this.api.downloadDocument(letter.id).subscribe({
+    this.api.downloadDocument(letter.id, format).subscribe({
       next: (res) => {
         this.setLetterBusy(job.id, false);
         if (!res.body) return;
-        const name = /filename="?([A-Za-z0-9._-]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'Cover-letter.docx';
+        const name = /filename="?([A-Za-z0-9._-]+)"?/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? `Cover-letter.${format}`;
         const url = URL.createObjectURL(res.body);
         const a = document.createElement('a');
         a.href = url;

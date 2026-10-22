@@ -105,9 +105,9 @@ public static class JobEndpoints
             return Results.Created($"/api/documents/{letter.Id}/cover-letter", letter);
         });
         documents.MapGet("{id:guid}", async (Guid id, DocumentService d, CancellationToken ct) => Results.Ok(await d.GetAsync(id, ct)));
-        documents.MapGet("{id:guid}/download", async (Guid id, DocumentService d, CancellationToken ct) =>
+        documents.MapGet("{id:guid}/download", async (Guid id, string? format, DocumentService d, CancellationToken ct) =>
         {
-            var f = await d.DownloadDocxAsync(id, ct);
+            var f = await d.DownloadAsync(id, format, ct);
             return Results.File(f.Bytes, f.ContentType, f.FileName);
         });
         app.MapGet("/api/ai/status", async (JobAnalysisService a, CancellationToken ct) => Results.Ok(await a.StatusAsync(ct)));

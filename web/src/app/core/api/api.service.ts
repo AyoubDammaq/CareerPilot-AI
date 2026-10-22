@@ -163,8 +163,9 @@ export class ApiService {
   }
 
   /** Downloads through HttpClient so the bearer token is sent (a plain link would not carry it). */
-  downloadDocument(id: string): Observable<HttpResponse<Blob>> {
-    return this.http.get(`${this.base}/documents/${id}/download`, { observe: 'response', responseType: 'blob' });
+  downloadDocument(id: string, format: 'docx' | 'pdf' = 'docx'): Observable<HttpResponse<Blob>> {
+    const query = format === 'pdf' ? '?format=pdf' : '';
+    return this.http.get(`${this.base}/documents/${id}/download${query}`, { observe: 'response', responseType: 'blob' });
   }
 
   rescore(): Observable<RescoreResult> {

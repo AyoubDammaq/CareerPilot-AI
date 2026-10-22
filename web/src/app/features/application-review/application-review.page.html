@@ -162,8 +162,10 @@
                   </ol>
                   <div class="row">
                     <button type="button" class="btn btn-small" (click)="download(app, a.cvDocumentId)" [disabled]="isBusy(app)">Download CV (.docx)</button>
+                    <button type="button" class="btn btn-small" (click)="download(app, a.cvDocumentId, 'pdf')" [disabled]="isBusy(app)">Download CV (PDF)</button>
                     @if (a.coverLetterDocumentId) {
                       <button type="button" class="btn btn-small" (click)="download(app, a.coverLetterDocumentId)" [disabled]="isBusy(app)">Download cover letter (.docx)</button>
+                      <button type="button" class="btn btn-small" (click)="download(app, a.coverLetterDocumentId, 'pdf')" [disabled]="isBusy(app)">Download cover letter (PDF)</button>
                     }
                     @if (a.applyUrl) {
                       <a class="btn btn-small" [href]="a.applyUrl" target="_blank" rel="noopener noreferrer">Open the employer's application page (new tab)</a>

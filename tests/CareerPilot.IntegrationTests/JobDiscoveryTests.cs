@@ -193,7 +193,16 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
         var bytes = await file.Content.ReadAsByteArrayAsync();
         Assert.Equal((byte)'P', bytes[0]);
 
+        var pdf = await client.GetAsync($"/api/documents/{doc.Id}/download?format=pdf");
+        Assert.Equal(HttpStatusCode.OK, pdf.StatusCode);
+        Assert.Equal("application/pdf", pdf.Content.Headers.ContentType!.MediaType);
+        Assert.EndsWith(".pdf", pdf.Content.Headers.ContentDisposition!.FileNameStar ?? pdf.Content.Headers.ContentDisposition.FileName!.Trim('"'));
+        Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(await pdf.Content.ReadAsByteArrayAsync(), 0, 4));
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await client.GetAsync($"/api/documents/{doc.Id}/download?format=exe")).StatusCode);
+
         using var anon = api.CreateAnonymousClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync($"/api/documents/{doc.Id}/download?format=pdf")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync($"/api/documents/{doc.Id}/download")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/documents/{Guid.NewGuid()}")).StatusCode);
     }
