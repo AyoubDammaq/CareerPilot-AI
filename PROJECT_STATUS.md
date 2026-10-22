@@ -69,7 +69,7 @@ Descriptions are stored and shown as inert plain text (job text is untrusted).
 
 The score is a ranking aid, not a decision: it never approves or applies anything. AI answers are suggestions for the owner to read critically. Salary is compared only in the same currency per year; no currency conversion.
 
-## Phase 4 — Tailored CV and cover letters (done); CV import and PDF export (not started)
+## Phase 4 — Tailored CV and cover letters (done); CV import (done, see below); PDF export (not started)
 | Item | State |
 |---|---|
 | CV built **only** from facts marked verified (experience, skills, projects); education and languages included as entered (they have no verified flag); summary and achievements copied word for word, never rewritten | **Tested (CI)** |
@@ -81,7 +81,8 @@ The score is a ranking aid, not a decision: it never approves or applies anythin
 | Cover letter: AI draft from **verified facts only** (model sees no email/phone, posting fenced as untrusted, no tools), 3 short paragraphs, owner edits it in the UI; every version is a new immutable fingerprinted snapshot | Tested (CI) with a fake model. **Never run with a real model** |
 | Claim checker on every version: flags technologies not on the profile or not verified, figures absent from the verified profile, and "N years" beyond the verified work history; re-run when read, so un-verifying a skill later flags old letters | Tested (CI). It catches skills and figures only: it cannot judge free-form statements, and "clean" does not mean "true" |
 | Download blocked in the UI until edits are saved and re-checked; DOCX with greeting, paragraphs, sign-off | Tested (91 frontend tests, CI) |
-| PDF export, CV import from a file | **Planned** |
+| CV import (PDF, DOCX, text up to 5 MB): contact details and technologies found by rules; with AI on, also experience, education, projects, languages. Every AI item must be grounded in the document text or is dropped. Preview only: nothing reaches the profile until you tick items and apply; items are added **unverified** unless you tick "I confirm these are true"; existing contact details are never overwritten; the file is not stored | Backend **Tested (CI)** (PDF read-back, grounding, apply, integration). UI: 6 frontend tests, written 2026-10-22; CI result for the latest push is pending. **Never run with a real model or a real CV** |
+| PDF export | **Planned** |
 
 Note: the starter profile has nothing marked verified, so your first CV will be nearly empty and say why. Open Profile and verify the facts that are true.
 
@@ -99,8 +100,8 @@ Note: the starter profile has nothing marked verified, so your first CV will be 
 | Application Review page: documents, exact content under review, two-step acknowledgement, guided manual steps, owner-reported outcome; "Start application" on each job | Tested (111 frontend tests) |
 | Automatic submission to employers | **Deliberately not built.** Official apply endpoints are employer-side; MVP is guided manual submission |
 
-## Not started (Phases 4c, 6-8)
-CV import, PDF export + submission, tracking/analytics, scheduler, notifications, production hardening.
+## Not started (Phases 6-8)
+PDF export + submission, tracking/analytics, scheduler, notifications, production hardening.
 
 ## Known limitations / honest notes
 - No official public search API for Indeed or LinkedIn; EURES and Wellfound official access unverified. Greenhouse/Lever/Ashby public feeds are per company, so a company watchlist is required. Official apply endpoints are employer-side, so MVP submission is a **guided manual flow with owner-reported confirmation**, not automated submission.
@@ -108,10 +109,11 @@ CV import, PDF export + submission, tracking/analytics, scheduler, notifications
 - First-run profile creation is not race-protected (two simultaneous first requests could create two profiles; single-user app, low risk, to be hardened with a unique constraint).
 - Angular CLI needs Node >= 22.22.3; this workspace had 22.22.0, so a Node 24 binary from the npm registry was used for local runs. CI uses Node 24.
 
+- CV import limits: no OCR (scanned PDFs have no text), education dates are not imported, a year-only date becomes month 01, the AI import budget (`Llm__DailyImportLimit`, default 10) is in memory and resets on restart.
 - Worker runs in-process in the API, not as a separate Worker project.
 - Indeed/LinkedIn are not used (no public search API).
 
 ## Exact next steps
 1. To try AI analysis: set `Llm__Provider` (Anthropic or OpenAiCompatible), `Llm__Model`, and `Llm__ApiKey` in the environment, restart the API.
-2. Phase 4c: CV import (every proposed change reviewed by you before it enters the profile) and PDF export.
+2. PDF export.
 3. Phase 6-7: reminders, tracking dashboard and analytics from real application data.

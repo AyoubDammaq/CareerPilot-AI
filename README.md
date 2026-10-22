@@ -43,4 +43,5 @@ Off by default. To enable, set environment variables for the API (never commit k
 `Llm__Provider=Anthropic` (or `OpenAiCompatible`), `Llm__Model=<model id>`, `Llm__ApiKey=<key>`.
 For a local model via Ollama: `Llm__Provider=OpenAiCompatible`, `Llm__Model=<local model>`, no key, default URL `http://localhost:11434/v1`.
 Cost controls: `Llm__DailyCallLimit` (default 20 new analyses per UTC day), `Llm__MaxOutputTokens` (800), `Llm__MaxPostingChars` (6000). Results are cached per job.
+Import CV (sidebar): upload a PDF, DOCX or text CV, review what was found, tick what to add. Works without AI for contact details and technologies; with AI on it also proposes experience, education, projects and languages (the CV text is sent to your provider). `Llm__DailyImportLimit` caps AI imports (default 10).
 Scoring weights can be tuned with `Scoring__Skills`, `Scoring__Title`, and so on (they are rescaled to 100).

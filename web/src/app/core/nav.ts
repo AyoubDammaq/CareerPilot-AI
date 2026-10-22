@@ -13,7 +13,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: 'opportunities', label: 'Job Opportunities', phase: null, blurb: 'Review the jobs found for you, with the reasons for each filter.' },
   { path: 'application-review', label: 'Application Review', phase: null, blurb: 'Check and approve each application before you send it.' },
   { path: 'applications', label: 'My Applications', phase: '7', blurb: 'Track the status of every application.' },
-  { path: 'cv-library', label: 'CV Library', phase: '4', blurb: 'Store and tailor CVs built from your verified facts.' },
+  { path: 'cv-library', label: 'Import CV', phase: null, blurb: 'Bring in an existing CV and choose what to add to your profile.' },
   { path: 'analytics', label: 'Analytics', phase: '7', blurb: 'See how your search is going, based on real activity.' },
   { path: 'integrations', label: 'Integrations', phase: 'later', blurb: 'Connect external services.' },
   { path: 'settings', label: 'Settings', phase: 'later', blurb: 'Application preferences.' },

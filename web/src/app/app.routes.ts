@@ -47,6 +47,11 @@ export const routes: Routes = [
         title: 'Application Review | CareerPilot AI',
         loadComponent: () => import('./features/application-review/application-review.page').then((m) => m.ApplicationReviewPage),
       },
+      {
+        path: 'cv-library',
+        title: 'Import CV | CareerPilot AI',
+        loadComponent: () => import('./features/cv-import/cv-import.page').then((m) => m.CvImportPage),
+      },
       ...placeholders,
     ],
   },

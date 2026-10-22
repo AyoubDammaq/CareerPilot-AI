@@ -42,7 +42,7 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     const badges = Array.from(el.querySelectorAll('.card-soon .badge')).map((b) => b.textContent!.trim());
-    expect(badges).toContain('Available in Phase 4');
+    expect(badges).not.toContain('Available in Phase 4'); // CV import is live
     expect(badges).not.toContain('Available in Phase 5'); // Application Review is now a working page
     expect(badges).toContain('Available in Phase 7');
     expect(badges.every((b) => b.startsWith('Available in'))).toBe(true);

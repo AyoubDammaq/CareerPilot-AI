@@ -7,6 +7,7 @@ import {
   CompanyInput,
   CompanyTestResult,
   DashboardDto,
+  AiStatus,
   ApplicationDto,
   CoverLetterDto,
   DocumentSummaryDto,
@@ -16,6 +17,9 @@ import {
   JobFilters,
   JobSummaryDto,
   LoginResponse,
+  ImportApplyInput,
+  ImportApplyResult,
+  ImportProposal,
   PagedResult,
   RescoreResult,
   ProfileDto,
@@ -105,6 +109,21 @@ export class ApiService {
 
   reviseCoverLetter(documentId: string, paragraphs: string[]): Observable<CoverLetterDto> {
     return this.http.post<CoverLetterDto>(`${this.base}/documents/${documentId}/revise`, { paragraphs });
+  }
+
+  aiStatus(): Observable<AiStatus> {
+    return this.http.get<AiStatus>(`${this.base}/ai/status`);
+  }
+
+  previewImport(file: File, useAi: boolean): Observable<ImportProposal> {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    form.append('useAi', String(useAi));
+    return this.http.post<ImportProposal>(`${this.base}/profile/import/preview`, form);
+  }
+
+  applyImport(input: ImportApplyInput): Observable<ImportApplyResult> {
+    return this.http.post<ImportApplyResult>(`${this.base}/profile/import/apply`, input);
   }
 
   startApplication(jobId: string): Observable<ApplicationDto> {

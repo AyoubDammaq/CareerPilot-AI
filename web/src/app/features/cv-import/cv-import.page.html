@@ -1,0 +1,142 @@
+<header class="page-header">
+  <h1>Import CV</h1>
+  <p class="muted">
+    Bring in an existing CV, then choose exactly what to add to your profile. Nothing is added until you press the button at the end, and the file itself is not kept.
+  </p>
+</header>
+
+@if (result(); as r) {
+  <section class="card" role="status">
+    <h2>Done</h2>
+    <p>
+      {{ r.added }} {{ r.added === 1 ? 'item was' : 'items were' }} added to your profile.
+      @if (r.added > 0) { Open your <a routerLink="/profile">Career Profile</a> to check them. }
+    </p>
+    @if (r.skipped.length > 0) {
+      <p class="small muted">Left out: {{ r.skipped.join(' ') }}</p>
+    }
+  </section>
+}
+
+<section class="card" aria-labelledby="up-h">
+  <h2 id="up-h">1. Choose a file</h2>
+  <div class="field">
+    <label for="cv-file">CV file (PDF, DOCX or plain text, up to 5 MB)</label>
+    <input id="cv-file" type="file" accept=".pdf,.docx,.txt,.md" (change)="onFile($event)" />
+  </div>
+  <p class="muted small">Scanned images are not supported: the file needs real text.</p>
+
+  <div class="check">
+    <input id="use-ai" type="checkbox" [checked]="useAi()" [disabled]="!ai()?.enabled" (change)="onUseAi($event)" />
+    <label for="use-ai">Also use AI to propose experience, education, projects and languages</label>
+  </div>
+  @if (ai()?.enabled) {
+    <p class="muted small">
+      This sends the text of your CV to your configured AI provider ({{ ai()!.provider }}). Anything the AI suggests that the document does not contain is dropped before you see it.
+    </p>
+  } @else {
+    <p class="muted small">AI is not configured on this server, so only contact details and technologies will be found.</p>
+  }
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+  <button type="button" class="btn" (click)="preview()" [disabled]="busy() || !file()">
+    {{ busy() && !proposal() ? 'Reading…' : 'Read the CV' }}
+  </button>
+</section>
+
+@if (proposal(); as p) {
+  <section class="card" aria-labelledby="rev-h">
+    <h2 id="rev-h">2. Choose what to add</h2>
+    <p class="muted small">{{ p.textCharacters | number }} characters read{{ p.aiUsed ? ' (AI used)' : ' (no AI)' }}. Untick anything you do not want.</p>
+
+    @for (n of p.notes; track n) {
+      <p class="alert small" role="status">{{ n }}</p>
+    }
+
+    @if (contactEntries().length > 0) {
+      <h3>Contact details</h3>
+      <p class="muted small">Only details your profile does not have yet. Existing ones are never replaced.</p>
+      @for (c of contactEntries(); track c[0]) {
+        <div class="check">
+          <input [id]="'c-' + c[0]" type="checkbox" [checked]="contactOn()[c[0]]" (change)="toggleContact(c[0])" />
+          <label [for]="'c-' + c[0]">{{ c[1] }}</label>
+        </div>
+      }
+    }
+
+    @if (p.experiences.length > 0) {
+      <h3>Work experience</h3>
+      @for (e of p.experiences; track $index) {
+        <div class="check">
+          <input [id]="'e-' + $index" type="checkbox" [checked]="experiencesOn().has($index)" (change)="toggle('experiences', $index)" />
+          <label [for]="'e-' + $index">
+            <strong>{{ e.title }}, {{ e.company }}</strong> ({{ e.startDate.slice(0, 7) }} to {{ e.endDate ? e.endDate.slice(0, 7) : 'present' }})
+            @if (e.achievements.length > 0) { <span class="small muted"> &middot; {{ e.achievements.join('; ') }}</span> }
+          </label>
+        </div>
+      }
+    }
+
+    @if (p.education.length > 0) {
+      <h3>Education</h3>
+      @for (e of p.education; track $index) {
+        <div class="check">
+          <input [id]="'ed-' + $index" type="checkbox" [checked]="educationOn().has($index)" (change)="toggle('education', $index)" />
+          <label [for]="'ed-' + $index">{{ e.degree }} {{ e.field }}, {{ e.institution }}</label>
+        </div>
+      }
+    }
+
+    @if (p.skills.length > 0) {
+      <h3>Skills and technologies</h3>
+      @for (s of p.skills; track $index) {
+        <div class="check">
+          <input [id]="'s-' + $index" type="checkbox" [checked]="skillsOn().has($index)" (change)="toggle('skills', $index)" />
+          <label [for]="'s-' + $index">{{ s }}</label>
+        </div>
+      }
+    }
+
+    @if (p.projects.length > 0) {
+      <h3>Projects</h3>
+      @for (x of p.projects; track $index) {
+        <div class="check">
+          <input [id]="'p-' + $index" type="checkbox" [checked]="projectsOn().has($index)" (change)="toggle('projects', $index)" />
+          <label [for]="'p-' + $index">
+            <strong>{{ x.name }}</strong>
+            @if (x.technologies.length > 0) { <span class="small muted"> &middot; {{ x.technologies.join(', ') }}</span> }
+          </label>
+        </div>
+      }
+    }
+
+    @if (p.languages.length > 0) {
+      <h3>Languages</h3>
+      @for (l of p.languages; track $index) {
+        <div class="check">
+          <input [id]="'l-' + $index" type="checkbox" [checked]="languagesOn().has($index)" (change)="toggle('languages', $index)" />
+          <label [for]="'l-' + $index">{{ l.name }}{{ l.level ? ' (' + l.level + ')' : '' }}</label>
+        </div>
+      }
+    }
+
+    @if (selectedCount() === 0 && p.notes.length >= 0 && contactEntries().length + p.experiences.length + p.education.length + p.skills.length + p.projects.length + p.languages.length === 0) {
+      <p class="empty">Nothing new was found to add.</p>
+    }
+
+    <h3>3. Add to your profile</h3>
+    <div class="check">
+      <input id="mv" type="checkbox" [checked]="markVerified()" (change)="onMarkVerified($event)" />
+      <label for="mv">
+        I confirm the ticked items are true: mark them verified. (Leave this off to review them in your profile first. Only verified items can appear on generated CVs and letters.)
+      </label>
+    </div>
+    <div class="row">
+      <button type="button" class="btn" (click)="apply()" [disabled]="busy() || selectedCount() === 0">
+        Add {{ selectedCount() }} {{ selectedCount() === 1 ? 'item' : 'items' }} to my profile
+      </button>
+    </div>
+  </section>
+}
