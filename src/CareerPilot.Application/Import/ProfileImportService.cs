@@ -188,7 +188,7 @@ public sealed partial class ProfileImportService(
     public static ProposedContact FindContact(string text)
     {
         var email = EmailRx().Match(text) is { Success: true } e ? e.Value : null;
-        var phone = PhoneRx().Matches(text).Select(m => m.Value.Trim()).FirstOrDefault(p => p.Count(char.IsDigit) is >= 8 and <= 15);
+        var phone = PhoneRx().Matches(text).Select(m => m.Value.Trim()).FirstOrDefault(p => p.Count(char.IsDigit) is >= 8 and <= 15 && !Regex.IsMatch(p, @"^(19|20)\d{2}\s*[-–./]\s*(19|20)\d{2}$"));
         string? Url(Regex rx) => rx.Match(text) is { Success: true } m ? (m.Value.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? m.Value : "https://" + m.Value).TrimEnd('/') : null;
         return new ProposedContact(null, email, phone, Url(GithubRx()), Url(LinkedinRx()));
     }
