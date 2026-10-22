@@ -20,6 +20,24 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 // ---- configuration -------------------------------------------------------------------
+var security = builder.Configuration.GetSection(SecurityOptions.Section).Get<SecurityOptions>() ?? new SecurityOptions();
+security.EnsureValid();
+builder.WebHost.ConfigureKestrel(k =>
+{
+    k.AddServerHeader = false;
+    k.Limits.MaxRequestBodySize = security.MaxRequestBodyMb * 1024L * 1024L;
+});
+if (security.TrustForwardedHeaders)
+{
+    builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(o =>
+    {
+        o.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+        o.ForwardLimit = security.ForwardLimit;
+        // The API port is only reachable through the proxy (see docker-compose.yml), so any sender here is the proxy.
+        o.KnownIPNetworks.Clear();
+        o.KnownProxies.Clear();
+    });
+}
 var authOptions = builder.Configuration.GetSection(AuthOptions.Section).Get<AuthOptions>() ?? new AuthOptions();
 authOptions.EnsureValid(); // fail fast: never start with a missing or weak secret
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.Section));
@@ -62,9 +80,14 @@ builder.Services.AddAuthorization(o =>
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    static string Client(HttpContext ctx) => ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx => RateLimitPartition.GetFixedWindowLimiter(
+        Client(ctx), _ => new FixedWindowRateLimiterOptions { PermitLimit = security.GlobalPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     o.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(
-        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+        Client(ctx), _ => new FixedWindowRateLimiterOptions { PermitLimit = security.LoginPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    // AI calls, job-board searches and file parsing: costly for you (money, other sites' goodwill, CPU).
+    o.AddPolicy("expensive", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        Client(ctx), _ => new FixedWindowRateLimiterOptions { PermitLimit = security.ExpensivePerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 
 builder.Services.AddProblemDetails();
@@ -74,6 +97,8 @@ builder.Services.AddHealthChecks()
 var app = builder.Build();
 
 // ---- pipeline ------------------------------------------------------------------------
+if (security.TrustForwardedHeaders) app.UseForwardedHeaders();
+app.UseSecurityHeaders();
 app.UseExceptionHandler(handler => handler.Run(async ctx =>
 {
     var ex = ctx.Features.Get<IExceptionHandlerFeature>()?.Error;
@@ -131,10 +156,14 @@ app.UseAuthorization();
 app.MapHealthChecks("/health/live", new() { Predicate = _ => false }).AllowAnonymous();
 app.MapHealthChecks("/health/ready", new() { Predicate = r => r.Tags.Contains("ready") }).AllowAnonymous();
 
-app.MapPost("/api/auth/login", (LoginRequest request, TokenService tokens) =>
+app.MapPost("/api/auth/login", (LoginRequest request, TokenService tokens, HttpContext http, ILoggerFactory logs) =>
 {
     if (!tokens.VerifyPassword(request.Password))
+    {
+        // Never log the password that was tried.
+        logs.CreateLogger("Auth").LogWarning("Failed sign-in from {Address}", http.Connection.RemoteIpAddress);
         return Results.Json(new { title = "Invalid password.", status = 401 }, statusCode: StatusCodes.Status401Unauthorized);
+    }
 
     var issued = tokens.Issue();
     return Results.Ok(new { token = issued.Token, expiresAt = issued.ExpiresAt });
@@ -153,7 +182,7 @@ app.MapJobEndpoints();
 
 // ---- startup -------------------------------------------------------------------------
 var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
-await DatabaseInitializer.InitializeAsync(app.Services, startupLogger);
+await DatabaseInitializer.InitializeAsync(app.Services, startupLogger, allowEnsureCreated: !app.Environment.IsProduction());
 
 app.Run();
 

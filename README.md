@@ -2,7 +2,7 @@
 
 A personal job-search and application agent. Nothing is ever submitted without your explicit approval; the rule is enforced in the backend domain model, not in the UI.
 
-**Status:** Phase 1 (foundation + profile). See [PROJECT_STATUS.md](PROJECT_STATUS.md) for exactly what is tested and what is not. Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+**Status:** Phases 1 to 8 built (profile, job search, scoring, AI analysis, CV and cover letter, approval workflow, CV import, PDF export, tracking, hardening). See [PROJECT_STATUS.md](PROJECT_STATUS.md) for exactly what is tested and what is not. Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Running it for real: [docs/OPERATIONS.md](docs/OPERATIONS.md). Security: [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Run locally with Docker
 ```bash
@@ -35,7 +35,7 @@ cd web && npx ng test --watch=false                       # frontend
 CI (`.github/workflows/ci.yml`) runs all of the above plus production builds and Docker image builds.
 
 ## Database migrations
-No migration is committed yet. Run the **Generate EF migration** workflow on GitHub (or `dotnet ef migrations add InitialCreate --project src/CareerPilot.Infrastructure --startup-project src/CareerPilot.API --output-dir Persistence/Migrations`) and commit the result.
+Migrations are committed and applied automatically at start. After changing an entity, run the **Generate EF migration** workflow on GitHub (or `dotnet ef migrations add <Name> --project src/CareerPilot.Infrastructure --startup-project src/CareerPilot.API --output-dir Persistence/Migrations`) and commit the result. A production start refuses to run with no migrations.
 
 
 ## Optional: AI job analysis

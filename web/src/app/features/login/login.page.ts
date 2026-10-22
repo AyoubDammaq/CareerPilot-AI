@@ -20,7 +20,7 @@ export function loginErrorMessage(e: unknown): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="login-wrap">
-      <form class="card login-card" (ngSubmit)="submit()" novalidate>
+      <form class="card login-card" (submit)="onSubmit($event)" novalidate>
         <h1>CareerPilot AI</h1>
         <p class="muted">Sign in to your personal job-search workspace.</p>
         <div class="field">
@@ -54,6 +54,15 @@ export class LoginPage {
   constructor() {
     if (this.auth.isAuthenticated()) void this.router.navigateByUrl('/dashboard');
     this.api.healthLive().subscribe({ error: () => this.apiDown.set(true) });
+  }
+
+  /**
+   * The form has no form-group directive, so Angular's own ngSubmit never fires and the browser would submit the page
+   * natively (a reload to /login?). Handle the DOM event and stop that.
+   */
+  onSubmit(event: Event): void {
+    event.preventDefault();
+    this.submit();
   }
 
   submit(): void {

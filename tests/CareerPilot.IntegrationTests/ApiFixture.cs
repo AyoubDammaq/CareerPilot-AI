@@ -46,6 +46,8 @@ public sealed class ApiFixture : IDisposable
         Environment.SetEnvironmentVariable("ConnectionStrings__Default", db);
         Environment.SetEnvironmentVariable("Auth__Password", Password);
         Environment.SetEnvironmentVariable("Auth__JwtKey", JwtKey);
+        // The shared host serves many tests in one minute; the limits themselves are tested in HardeningTests.
+        Environment.SetEnvironmentVariable("Security__ExpensivePerMinute", "1000");
         _factory = new WebApplicationFactory<Program>();
     }
 

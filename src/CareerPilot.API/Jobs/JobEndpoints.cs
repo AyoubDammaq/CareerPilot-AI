@@ -36,7 +36,7 @@ public static class JobEndpoints
             var run = await search.QueueAsync(SearchTrigger.Manual, ct);
             queue.Enqueue(run.Id);
             return Results.Accepted($"/api/search-runs/{run.Id}", run);
-        });
+        }).RequireRateLimiting("expensive");
         runs.MapGet("", async (JobQueryService s, CancellationToken ct) => Results.Ok(await s.RecentRunsAsync(ct)));
         runs.MapGet("{id:guid}", async (Guid id, JobQueryService s, CancellationToken ct) => Results.Ok(await s.GetRunAsync(id, ct)));
 
@@ -48,9 +48,9 @@ public static class JobEndpoints
             Results.Ok(await s.QueryAsync(new JobQuery(
                 q, country, workMode, status, relevantOnly ?? true, geoFit, decision,
                 sort ?? "newest", page ?? 1, pageSize ?? 25, minScore), ct)));
-        jobs.MapPost("rescore", async (MatchingService m, CancellationToken ct) => Results.Ok(await m.RescoreAllAsync(ct)));
+        jobs.MapPost("rescore", async (MatchingService m, CancellationToken ct) => Results.Ok(await m.RescoreAllAsync(ct))).RequireRateLimiting("expensive");
         jobs.MapPost("{id:guid}/analysis", async (Guid id, bool? refresh, JobAnalysisService a, CancellationToken ct) =>
-            Results.Ok(await a.AnalyzeAsync(id, refresh ?? false, ct)));
+            Results.Ok(await a.AnalyzeAsync(id, refresh ?? false, ct))).RequireRateLimiting("expensive");
         jobs.MapPost("{id:guid}/documents/cv", async (Guid id, DocumentService d, CancellationToken ct) =>
         {
             var doc = await d.CreateCvAsync(id, ct);
@@ -60,7 +60,7 @@ public static class JobEndpoints
         {
             var letter = await c.DraftAsync(id, ct);
             return Results.Created($"/api/documents/{letter.Id}/cover-letter", letter);
-        });
+        }).RequireRateLimiting("expensive");
         jobs.MapGet("{id:guid}/documents", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.DocumentsForJobAsync(id, ct)));
         jobs.MapPost("{id:guid}/application", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.StartAsync(id, ct)));
 
@@ -82,7 +82,7 @@ public static class JobEndpoints
             await file.CopyToAsync(ms, ct);
             var useAi = string.Equals(form["useAi"].ToString(), "true", StringComparison.OrdinalIgnoreCase);
             return Results.Ok(await svc.PreviewAsync(file.FileName, ms.ToArray(), useAi, ct));
-        });
+        }).RequireRateLimiting("expensive");
         import.MapPost("apply", async (ImportApplyInput input, ProfileImportService svc, CancellationToken ct) => Results.Ok(await svc.ApplyAsync(input, ct)));
 
         app.MapGet("/api/tracking/reminders", async (CareerPilot.Application.Tracking.TrackingService t, CancellationToken ct) => Results.Ok(await t.RemindersAsync(ct)));

@@ -13,6 +13,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "127.0.0.1:5432:5432"   # local access only
 
@@ -28,6 +30,21 @@ services:
       ConnectionStrings__Default: Host=db;Database=careerpilot;Username=careerpilot;Password=${POSTGRES_PASSWORD}
       Auth__Password: ${AUTH_PASSWORD:?Set AUTH_PASSWORD in .env (min 12 chars)}
       Auth__JwtKey: ${AUTH_JWT_KEY:?Set AUTH_JWT_KEY in .env (min 32 chars)}
+      ASPNETCORE_ENVIRONMENT: Production
+      # Every request reaches the API through the nginx container, so its forwarded address is the real client.
+      # If you also put your own HTTPS proxy in front of nginx, set SECURITY_FORWARD_LIMIT=2 in .env.
+      Security__TrustForwardedHeaders: "true"
+      Security__ForwardLimit: ${SECURITY_FORWARD_LIMIT:-1}
+      # Optional AI (off unless LLM_PROVIDER is set). The key lives only in .env, never in the repository.
+      Llm__Provider: ${LLM_PROVIDER:-None}
+      Llm__Model: ${LLM_MODEL:-}
+      Llm__ApiKey: ${LLM_API_KEY:-}
+      Llm__BaseUrl: ${LLM_BASE_URL:-}
+      Llm__DailyCallLimit: ${LLM_DAILY_CALL_LIMIT:-20}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     ports:
       - "127.0.0.1:5080:8080"
 
@@ -37,6 +54,8 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "127.0.0.1:4200:80"
 

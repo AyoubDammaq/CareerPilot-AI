@@ -14,10 +14,17 @@ public sealed class AuthOptions
     public string Audience { get; set; } = "careerpilot-web";
     public int TokenLifetimeMinutes { get; set; } = 480;
 
+    private static bool LooksLikePlaceholder(string v) =>
+        v.StartsWith("change-me", StringComparison.OrdinalIgnoreCase) || v.StartsWith("replace-with", StringComparison.OrdinalIgnoreCase);
+
     public void EnsureValid()
     {
         if (Password.Length < 12)
             throw new InvalidOperationException("Auth:Password must be set and at least 12 characters (env var Auth__Password).");
+        if (LooksLikePlaceholder(Password))
+            throw new InvalidOperationException("Auth:Password still has the example value from .env.example. Choose your own.");
+        if (LooksLikePlaceholder(JwtKey))
+            throw new InvalidOperationException("Auth:JwtKey still has the example value from .env.example. Generate one with: openssl rand -base64 48");
         if (JwtKey.Length < 32)
             throw new InvalidOperationException("Auth:JwtKey must be set and at least 32 characters (env var Auth__JwtKey).");
         if (TokenLifetimeMinutes is < 5 or > 24 * 60)

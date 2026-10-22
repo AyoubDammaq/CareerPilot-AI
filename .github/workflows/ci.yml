@@ -80,6 +80,11 @@ jobs:
       - run: npm ci
       - run: npx ng test --watch=false
       - run: npx ng build
+      - name: Browser smoke test (production build, real Chromium, the same security policy nginx sends)
+        run: |
+          python3 -m pip install playwright
+          python3 -m playwright install --with-deps chromium
+          python3 e2e/smoke.py
 
   docker:
     name: Docker images build
@@ -88,3 +93,49 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker build -f src/CareerPilot.API/Dockerfile -t careerpilot-api .
       - run: docker build -t careerpilot-web ./web
+      - name: Compose file is valid
+        run: |
+          POSTGRES_PASSWORD=x AUTH_PASSWORD=a-long-enough-password AUTH_JWT_KEY=a-signing-key-that-is-at-least-32-chars docker compose config > /dev/null
+      - name: Web server config is valid and every location sends the security headers
+        run: |
+          docker run --rm --add-host api:127.0.0.1 careerpilot-web nginx -t
+          docker run -d --name web --add-host api:127.0.0.1 -p 8081:80 careerpilot-web
+          sleep 3
+          fail=0
+          for path in / /missing-page /main.js /api/anything /health/live; do
+            h=$(curl -s -D - -o /dev/null "http://127.0.0.1:8081$path")
+            for name in x-content-type-options x-frame-options referrer-policy content-security-policy permissions-policy; do
+              echo "$h" | grep -qi "^$name:" || { echo "::error title=HEADERS::$path is missing $name"; fail=1; }
+            done
+          done
+          echo "$(curl -s -D - -o /dev/null http://127.0.0.1:8081/)" | grep -qi '^server: nginx/' && echo "::warning title=HEADERS::server version is shown"
+          docker rm -f web > /dev/null
+          exit $fail
+
+  supply-chain:
+    name: Secrets and dependency checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No credentials committed
+        run: |
+          if git grep -nIE 'sk-ant-[A-Za-z0-9_-]{20,}|-----BEGIN ([A-Z]+ )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}' -- . ':!web/package-lock.json'; then
+            echo "::error title=SECRET::A credential-shaped string is committed (see the lines above). Remove it and rotate the credential."
+            exit 1
+          fi
+          if git ls-files | grep -E '(^|/)\.env$'; then echo "::error title=SECRET::A .env file is committed."; exit 1; fi
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Known vulnerabilities in NuGet packages (reported; does not block)
+        run: |
+          dotnet list CareerPilot.slnx package --vulnerable --include-transitive 2>&1 | tee vuln.txt
+          if grep -q "has the following vulnerable packages" vuln.txt; then echo "::warning title=NUGET VULNERABILITY::Vulnerable packages found. See the job log."; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Known vulnerabilities in npm packages that ship to the browser (reported; does not block)
+        working-directory: web
+        run: |
+          npm ci --ignore-scripts
+          npm audit --omit=dev --audit-level=high || echo "::warning title=NPM VULNERABILITY::npm audit found high or critical issues. See the job log."

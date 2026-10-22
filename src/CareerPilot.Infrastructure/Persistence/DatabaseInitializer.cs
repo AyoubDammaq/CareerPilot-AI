@@ -4,6 +4,9 @@ using Microsoft.Extensions.Logging;
 
 namespace CareerPilot.Infrastructure.Persistence;
 
+/// <summary>A production start with no migrations: retrying would not help.</summary>
+public sealed class NoMigrationsException() : Exception("No EF migrations were found and this is a production run. Refusing to create the schema ad hoc.");
+
 public static class DatabaseInitializer
 {
     private const int MaxAttempts = 10;
@@ -13,7 +16,7 @@ public static class DatabaseInitializer
     /// (development convenience only: create a real migration before relying on this data).
     /// Retries while the database container is still starting.
     /// </summary>
-    public static async Task InitializeAsync(IServiceProvider services, ILogger logger, CancellationToken ct = default)
+    public static async Task InitializeAsync(IServiceProvider services, ILogger logger, CancellationToken ct = default, bool allowEnsureCreated = true)
     {
         for (var attempt = 1; ; attempt++)
         {
@@ -26,6 +29,10 @@ public static class DatabaseInitializer
                 {
                     await db.Database.MigrateAsync(ct);
                 }
+                else if (!allowEnsureCreated)
+                {
+                    throw new NoMigrationsException();
+                }
                 else
                 {
                     logger.LogWarning("No EF migrations found; using EnsureCreated. Create an initial migration before storing real data.");
@@ -35,7 +42,7 @@ public static class DatabaseInitializer
                 await WatchlistSeeder.SeedAsync(db, ct);
                 return;
             }
-            catch (Exception ex) when (attempt < MaxAttempts && ex is not OperationCanceledException)
+            catch (Exception ex) when (attempt < MaxAttempts && ex is not OperationCanceledException and not NoMigrationsException)
             {
                 logger.LogWarning(ex, "Database not ready (attempt {Attempt}/{Max}); retrying in 3 seconds.", attempt, MaxAttempts);
                 await Task.Delay(TimeSpan.FromSeconds(3), ct);
