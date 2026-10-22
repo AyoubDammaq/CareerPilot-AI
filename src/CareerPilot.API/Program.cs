@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using CareerPilot.API;
 using CareerPilot.API.Auth;
 using CareerPilot.API.Jobs;
 using CareerPilot.Application;
