@@ -309,7 +309,7 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
         var preview = (await response.Content.ReadFromJsonAsync<CareerPilot.Application.Import.ImportProposal>(Json))!;
         Assert.False(preview.AiUsed);
         Assert.Contains("Terraform", preview.Skills);
-        Assert.Contains("Kubernetes", preview.Skills);
+        Assert.Contains("Elasticsearch", preview.Skills);
 
         // Previewing changed nothing.
         var before = (await client.GetFromJsonAsync<CareerPilot.Application.Profiles.ProfileDto>("/api/profile", Json))!;
@@ -321,11 +321,11 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
         Assert.Equal(HttpStatusCode.OK, applied.StatusCode);
         var result = (await applied.Content.ReadFromJsonAsync<CareerPilot.Application.Import.ImportApplyResult>(Json))!;
         Assert.Contains(result.Profile.Skills, x => x.Name == "Terraform" && !x.IsVerified);
-        Assert.DoesNotContain(result.Profile.Skills, x => x.Name == "Kubernetes");
+        Assert.DoesNotContain(result.Profile.Skills, x => x.Name == "Elasticsearch");
 
         // A second apply with the old version is refused.
         var stale = await client.PostAsJsonAsync("/api/profile/import/apply",
-            new { version = preview.ProfileVersion, markVerified = false, skills = new[] { "Kubernetes" } }, Json);
+            new { version = preview.ProfileVersion, markVerified = false, skills = new[] { "Elasticsearch" } }, Json);
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
 
         // Bad uploads.
