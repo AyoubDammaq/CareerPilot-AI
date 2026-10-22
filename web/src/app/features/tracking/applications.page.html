@@ -1,0 +1,62 @@
+<header class="page-header">
+  <h1>My Applications</h1>
+  <p class="muted">
+    Every application you have started, and what needs your attention. Reminders are worked out from what you recorded; nothing is sent to anyone.
+    To change a status or record a reply, open the application in <a routerLink="/application-review">Application Review</a>.
+  </p>
+</header>
+
+@if (loading()) {
+  <p role="status">Loading…</p>
+} @else if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+} @else {
+  <section class="card" aria-labelledby="rem-h">
+    <h2 id="rem-h">Needs attention</h2>
+    @if (reminders().length === 0) {
+      <p class="muted">Nothing needs your attention right now.</p>
+    } @else {
+      <ul class="plain">
+        @for (r of reminders(); track r.applicationId + r.kind) {
+          <li>
+            <strong>{{ r.jobTitle }}, {{ r.companyName }}</strong>: {{ r.message }}
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <section class="card" aria-labelledby="all-h">
+    <h2 id="all-h">All applications</h2>
+    @if (apps().length === 0) {
+      <p class="empty">No applications yet. Start one from a job in <a routerLink="/opportunities">Job Opportunities</a>.</p>
+    } @else {
+      @if (hiddenCount() > 0 || showFinished()) {
+        <div class="check">
+          <input id="show-fin" type="checkbox" [checked]="showFinished()" (change)="toggleFinished($event)" />
+          <label for="show-fin">Show finished ones (rejected, withdrawn, closed, offers decided)</label>
+        </div>
+      }
+      <table class="table">
+        <thead>
+          <tr><th scope="col">Job</th><th scope="col">Status</th><th scope="col">Submitted</th><th scope="col">Notes</th></tr>
+        </thead>
+        <tbody>
+          @for (a of visible(); track a.id) {
+            <tr>
+              <th scope="row">{{ a.jobTitle }}<br /><span class="muted small">{{ a.companyName }}</span></th>
+              <td>{{ label(a.status) }}</td>
+              <td>{{ a.submittedAt ? (a.submittedAt | date: 'd MMM y') : '—' }}</td>
+              <td class="small">
+                @for (r of remindersFor(a.id); track r.kind) {
+                  <span class="badge">{{ r.kind === 'FollowUp' ? 'Follow up' : 'Needs attention' }}</span>
+                }
+                {{ a.submissionNote ?? '' }}
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+}

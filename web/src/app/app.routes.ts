@@ -52,6 +52,16 @@ export const routes: Routes = [
         title: 'Import CV | CareerPilot AI',
         loadComponent: () => import('./features/cv-import/cv-import.page').then((m) => m.CvImportPage),
       },
+      {
+        path: 'applications',
+        title: 'My Applications | CareerPilot AI',
+        loadComponent: () => import('./features/tracking/applications.page').then((m) => m.ApplicationsPage),
+      },
+      {
+        path: 'analytics',
+        title: 'Analytics | CareerPilot AI',
+        loadComponent: () => import('./features/tracking/analytics.page').then((m) => m.AnalyticsPage),
+      },
       ...placeholders,
     ],
   },

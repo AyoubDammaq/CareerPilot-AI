@@ -85,6 +85,8 @@ public static class JobEndpoints
         });
         import.MapPost("apply", async (ImportApplyInput input, ProfileImportService svc, CancellationToken ct) => Results.Ok(await svc.ApplyAsync(input, ct)));
 
+        app.MapGet("/api/tracking/reminders", async (CareerPilot.Application.Tracking.TrackingService t, CancellationToken ct) => Results.Ok(await t.RemindersAsync(ct)));
+        app.MapGet("/api/tracking/summary", async (CareerPilot.Application.Tracking.TrackingService t, CancellationToken ct) => Results.Ok(await t.SummaryAsync(ct)));
         var applications = app.MapGroup("/api/applications");
         applications.MapGet("", async (ApplicationService a, CancellationToken ct) => Results.Ok(await a.ListAsync(ct)));
         applications.MapGet("{id:guid}", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.GetAsync(id, ct)));

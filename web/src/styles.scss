@@ -180,3 +180,18 @@ textarea { resize: vertical; }
 .letter { margin-bottom: 1rem; padding: .75rem; border: 1px solid var(--line); border-radius: var(--radius); }
 .letter-text { width: 100%; font: inherit; line-height: 1.5; }
 .apply { margin-bottom: 1rem; padding: .75rem; border: 1px solid var(--line); border-radius: var(--radius); }
+
+/* Tracking and analytics */
+.plain { list-style: none; padding: 0; margin: 0; }
+.plain li { padding: .35rem 0; border-bottom: 1px solid #e4e8f0; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid #e4e8f0; vertical-align: top; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; margin: 0; }
+.stats div { background: #f4f6fb; border-radius: 8px; padding: .6rem .8rem; }
+.stats dt { font-size: .85rem; color: #4a5568; }
+.stats dd { margin: 0; font-size: 1.5rem; font-weight: 700; }
+.bars { list-style: none; padding: 0; margin: 0; }
+.bars li { display: grid; grid-template-columns: 9.5rem 1fr 2rem; gap: .6rem; align-items: center; padding: .2rem 0; }
+.bar-track { background: #e4e8f0; border-radius: 4px; height: .8rem; display: block; }
+.bar-fill { background: #2b5fd9; border-radius: 4px; height: 100%; display: block; }
+.bar-value { text-align: right; font-variant-numeric: tabular-nums; }

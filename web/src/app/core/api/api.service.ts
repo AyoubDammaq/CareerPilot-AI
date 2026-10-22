@@ -21,6 +21,8 @@ import {
   ImportApplyResult,
   ImportProposal,
   PagedResult,
+  Reminder,
+  TrackingSummary,
   RescoreResult,
   ProfileDto,
   SearchRunDto,
@@ -109,6 +111,14 @@ export class ApiService {
 
   reviseCoverLetter(documentId: string, paragraphs: string[]): Observable<CoverLetterDto> {
     return this.http.post<CoverLetterDto>(`${this.base}/documents/${documentId}/revise`, { paragraphs });
+  }
+
+  trackingReminders(): Observable<Reminder[]> {
+    return this.http.get<Reminder[]>(`${this.base}/tracking/reminders`);
+  }
+
+  trackingSummary(): Observable<TrackingSummary> {
+    return this.http.get<TrackingSummary>(`${this.base}/tracking/summary`);
   }
 
   aiStatus(): Observable<AiStatus> {

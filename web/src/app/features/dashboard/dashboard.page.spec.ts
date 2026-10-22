@@ -44,7 +44,8 @@ describe('DashboardPage', () => {
     const badges = Array.from(el.querySelectorAll('.card-soon .badge')).map((b) => b.textContent!.trim());
     expect(badges).not.toContain('Available in Phase 4'); // CV import is live
     expect(badges).not.toContain('Available in Phase 5'); // Application Review is now a working page
-    expect(badges).toContain('Available in Phase 7');
+    expect(badges).not.toContain('Available in Phase 7'); // applications and analytics are live
+    expect(badges).toContain('Available in a later phase');
     expect(badges.every((b) => b.startsWith('Available in'))).toBe(true);
     // No missing items: no list, a positive statement instead
     expect(el.querySelector('.missing-list')).toBeNull();

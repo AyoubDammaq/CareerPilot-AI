@@ -25,6 +25,9 @@ public class JobApplication : Entity
     public DateTimeOffset? ApprovedAt { get; private set; }
     public DateTimeOffset? SubmittedAt { get; private set; }
 
+    /// <summary>When the owner first recorded a reply (rejection, interview or offer) to a submitted application. Never guessed.</summary>
+    public DateTimeOffset? RespondedAt { get; private set; }
+
     /// <summary>The documents under review. They are immutable snapshots, so their hashes cannot drift.</summary>
     public Guid? CvDocumentId { get; private set; }
     public Guid? CoverLetterDocumentId { get; private set; }
@@ -61,6 +64,10 @@ public class JobApplication : Entity
 
         if (next == ApplicationStatus.AwaitingApproval)
             ClearApproval();
+
+        if (Status == ApplicationStatus.Submitted && RespondedAt is null
+            && next is ApplicationStatus.RejectedByEmployer or ApplicationStatus.InterviewScheduled or ApplicationStatus.OfferReceived)
+            RespondedAt = DateTimeOffset.UtcNow;
 
         Status = next;
         Touch();

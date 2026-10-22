@@ -30,7 +30,8 @@ var discovery = builder.Configuration.GetSection(DiscoveryOptions.Section).Get<D
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o => o.MultipartBodyLengthLimit = 6 * 1024 * 1024);
 var scoring = builder.Configuration.GetSection(ScoringOptions.Section).Get<ScoringOptions>() ?? new ScoringOptions();
 var llm = builder.Configuration.GetSection(LlmOptions.Section).Get<LlmOptions>() ?? new LlmOptions();
-builder.Services.AddApplication(discovery, scoring, llm);
+var tracking = builder.Configuration.GetSection(CareerPilot.Application.Tracking.TrackingOptions.Section).Get<CareerPilot.Application.Tracking.TrackingOptions>() ?? new();
+builder.Services.AddApplication(discovery, scoring, llm, tracking);
 builder.Services.AddSingleton<SearchRunQueue>();
 builder.Services.AddHostedService<SearchRunWorker>();
 builder.Services.AddInfrastructure(builder.Configuration);

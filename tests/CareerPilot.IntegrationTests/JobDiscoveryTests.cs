@@ -298,6 +298,12 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
         Assert.Contains(all, a => a.Id == started.Id && a.Status == "Submitted");
 
         using var anon = api.CreateAnonymousClient();
+        var summary = (await client.GetFromJsonAsync<CareerPilot.Application.Tracking.TrackingSummary>("/api/tracking/summary", Json))!;
+        Assert.True(summary.Submitted >= 1);
+        Assert.Equal(8, summary.Weekly.Count);
+        Assert.NotNull(await client.GetFromJsonAsync<List<CareerPilot.Application.Tracking.Reminder>>("/api/tracking/reminders", Json));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync("/api/tracking/summary")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync("/api/tracking/reminders")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.GetAsync("/api/applications")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await anon.PostAsJsonAsync($"/api/applications/{started.Id}/approve", new { bundleHash = "x" }, Json)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/applications/{Guid.NewGuid()}")).StatusCode);
