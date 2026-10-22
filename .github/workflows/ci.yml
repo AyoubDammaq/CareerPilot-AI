@@ -21,7 +21,7 @@ jobs:
           --health-cmd "pg_isready -U careerpilot -d careerpilot_test"
           --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
@@ -71,7 +71,7 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -90,7 +90,7 @@ jobs:
     name: Docker images build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker build -f src/CareerPilot.API/Dockerfile -t careerpilot-api .
       - run: docker build -t careerpilot-web ./web
       - name: Compose file is valid
@@ -116,7 +116,7 @@ jobs:
     name: Secrets and dependency checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: No credentials committed
         run: |
           if git grep -nIE 'sk-ant-[A-Za-z0-9_-]{20,}|-----BEGIN ([A-Z]+ )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}' -- . ':!web/package-lock.json'; then
