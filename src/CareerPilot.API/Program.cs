@@ -27,6 +27,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<TokenService>();
 
 var discovery = builder.Configuration.GetSection(DiscoveryOptions.Section).Get<DiscoveryOptions>() ?? new DiscoveryOptions();
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o => o.MultipartBodyLengthLimit = 6 * 1024 * 1024);
 var scoring = builder.Configuration.GetSection(ScoringOptions.Section).Get<ScoringOptions>() ?? new ScoringOptions();
 var llm = builder.Configuration.GetSection(LlmOptions.Section).Get<LlmOptions>() ?? new LlmOptions();
 builder.Services.AddApplication(discovery, scoring, llm);

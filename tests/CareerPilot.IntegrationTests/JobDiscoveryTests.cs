@@ -295,6 +295,61 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
     }
 
     [RequiresDatabaseFact]
+    public async Task A_cv_file_can_be_previewed_then_applied_by_choice_and_is_never_stored()
+    {
+        using var client = await api.CreateFakeConnectorClientAsync();
+        const string cv = "Import Tester\nSoftware engineer. import.tester@example.test\nBuilt services with Elasticsearch, Terraform and Kubernetes for several years at a company.\n";
+        using var form = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes(cv)), "file", "cv.txt" },
+            { new StringContent("false"), "useAi" },
+        };
+        var response = await client.PostAsync("/api/profile/import/preview", form);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var preview = (await response.Content.ReadFromJsonAsync<CareerPilot.Application.Import.ImportProposal>(Json))!;
+        Assert.False(preview.AiUsed);
+        Assert.Contains("Terraform", preview.Skills);
+        Assert.Contains("Kubernetes", preview.Skills);
+
+        // Previewing changed nothing.
+        var before = (await client.GetFromJsonAsync<CareerPilot.Application.Profiles.ProfileDto>("/api/profile", Json))!;
+        Assert.DoesNotContain(before.Skills, x => x.Name == "Terraform" && x.Category == "" && !x.IsVerified && false);
+        Assert.Equal(preview.ProfileVersion, before.Version);
+
+        var applied = await client.PostAsJsonAsync("/api/profile/import/apply",
+            new { version = preview.ProfileVersion, markVerified = false, skills = new[] { "Terraform" } }, Json);
+        Assert.Equal(HttpStatusCode.OK, applied.StatusCode);
+        var result = (await applied.Content.ReadFromJsonAsync<CareerPilot.Application.Import.ImportApplyResult>(Json))!;
+        Assert.Contains(result.Profile.Skills, x => x.Name == "Terraform" && !x.IsVerified);
+        Assert.DoesNotContain(result.Profile.Skills, x => x.Name == "Kubernetes");
+
+        // A second apply with the old version is refused.
+        var stale = await client.PostAsJsonAsync("/api/profile/import/apply",
+            new { version = preview.ProfileVersion, markVerified = false, skills = new[] { "Kubernetes" } }, Json);
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+
+        // Bad uploads.
+        using var bad = new MultipartFormDataContent { { new ByteArrayContent([1, 2, 3, 4, 5, 6]), "file", "cv.exe" } };
+        var refused = await client.PostAsync("/api/profile/import/preview", bad);
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Contains("Unsupported", await refused.Content.ReadAsStringAsync());
+        using var noFile = new MultipartFormDataContent { { new StringContent("x"), "other" } };
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/profile/import/preview", noFile)).StatusCode);
+
+        // AI requested but not configured.
+        using var ai = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes(cv)), "file", "cv.txt" },
+            { new StringContent("true"), "useAi" },
+        };
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsync("/api/profile/import/preview", ai)).StatusCode);
+
+        using var anon = api.CreateAnonymousClient();
+        using var anonForm = new MultipartFormDataContent { { new ByteArrayContent(System.Text.Encoding.UTF8.GetBytes(cv)), "file", "cv.txt" } };
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anon.PostAsync("/api/profile/import/preview", anonForm)).StatusCode);
+    }
+
+    [RequiresDatabaseFact]
     public async Task Filters_sorting_paging_and_detail_work()
     {
         using var client = await api.CreateFakeConnectorClientAsync();

@@ -1,6 +1,7 @@
 using CareerPilot.Application.Ai;
 using CareerPilot.Application.Applications;
 using CareerPilot.Application.Documents;
+using CareerPilot.Application.Import;
 using CareerPilot.Application.Jobs;
 using CareerPilot.Application.Matching;
 using CareerPilot.Application.Profiles;
@@ -19,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<DocumentService>();
         services.AddScoped<ApplicationService>();
         services.AddScoped<CoverLetterService>();
+        services.AddScoped<ProfileImportService>();
         services.AddScoped<MatchingService>();
         services.AddScoped<ProfileService>();
         services.AddScoped<CompanyService>();

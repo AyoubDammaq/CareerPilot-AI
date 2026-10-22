@@ -2,6 +2,7 @@ using CareerPilot.Application.Abstractions;
 using CareerPilot.Application.Ai;
 using CareerPilot.Application.Applications;
 using CareerPilot.Application.Documents;
+using CareerPilot.Application.Import;
 using CareerPilot.Application.Jobs;
 using CareerPilot.Application.Matching;
 using CareerPilot.Domain.Jobs;
@@ -62,6 +63,27 @@ public static class JobEndpoints
         });
         jobs.MapGet("{id:guid}/documents", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.DocumentsForJobAsync(id, ct)));
         jobs.MapPost("{id:guid}/application", async (Guid id, ApplicationService a, CancellationToken ct) => Results.Ok(await a.StartAsync(id, ct)));
+
+        var import = app.MapGroup("/api/profile/import");
+        import.MapPost("preview", async (HttpRequest request, ProfileImportService svc, CancellationToken ct) =>
+        {
+            // Read the form by hand so the size limit and errors are ours, and the file is never stored.
+            IFormCollection form;
+            try { form = await request.ReadFormAsync(ct); }
+            catch (InvalidDataException)
+            {
+                throw new CareerPilot.Application.Common.ValidationFailedException(new Dictionary<string, string[]> { ["file"] = ["The file must be at most 5 MB."] });
+            }
+            var file = form.Files.GetFile("file")
+                ?? throw new CareerPilot.Application.Common.ValidationFailedException(new Dictionary<string, string[]> { ["file"] = ["Choose a file."] });
+            if (file.Length is 0 or > ProfileImportService.MaxFileBytes)
+                throw new CareerPilot.Application.Common.ValidationFailedException(new Dictionary<string, string[]> { ["file"] = ["The file must be between 1 byte and 5 MB."] });
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms, ct);
+            var useAi = string.Equals(form["useAi"].ToString(), "true", StringComparison.OrdinalIgnoreCase);
+            return Results.Ok(await svc.PreviewAsync(file.FileName, ms.ToArray(), useAi, ct));
+        });
+        import.MapPost("apply", async (ImportApplyInput input, ProfileImportService svc, CancellationToken ct) => Results.Ok(await svc.ApplyAsync(input, ct)));
 
         var applications = app.MapGroup("/api/applications");
         applications.MapGet("", async (ApplicationService a, CancellationToken ct) => Results.Ok(await a.ListAsync(ct)));

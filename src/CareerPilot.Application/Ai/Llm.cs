@@ -27,6 +27,9 @@ public sealed class LlmOptions
 
     public int TimeoutSeconds { get; set; } = 60;
 
+    /// <summary>AI CV imports per UTC day (counted in memory; resets when the server restarts).</summary>
+    public int DailyImportLimit { get; set; } = 10;
+
     public bool IsConfigured =>
         Provider != LlmProvider.None
         && !string.IsNullOrWhiteSpace(Model)
