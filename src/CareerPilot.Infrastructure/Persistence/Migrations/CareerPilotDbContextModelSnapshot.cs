@@ -47,6 +47,9 @@ namespace CareerPilot.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CvDocumentId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
