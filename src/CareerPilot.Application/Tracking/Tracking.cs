@@ -148,7 +148,7 @@ public static class TrackingCalculator
     }
 }
 
-public sealed class TrackingService(IApplicationStore apps, IJobStore jobs, TimeProvider clock, TrackingOptions options)
+public sealed class TrackingService(IApplicationReader apps, IJobStore jobs, TimeProvider clock, TrackingOptions options)
 {
     public async Task<List<Reminder>> RemindersAsync(CancellationToken ct) =>
         TrackingCalculator.Reminders(await RowsAsync(ct), clock.GetUtcNow(), options);

@@ -11,12 +11,17 @@ using CareerPilot.Domain.Jobs;
 
 namespace CareerPilot.Application.Applications;
 
-public interface IApplicationStore
+/// <summary>Read-only view of applications, for reporting. It cannot change anything.</summary>
+public interface IApplicationReader
+{
+    Task<List<JobApplication>> ListAsync(CancellationToken ct);
+}
+
+public interface IApplicationStore : IApplicationReader
 {
     void Add(JobApplication application);
     Task<JobApplication?> GetAsync(Guid id, CancellationToken ct);
     Task<JobApplication?> GetByJobAsync(Guid jobId, CancellationToken ct);
-    Task<List<JobApplication>> ListAsync(CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
 }
 

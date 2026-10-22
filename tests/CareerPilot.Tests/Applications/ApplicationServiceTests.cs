@@ -369,6 +369,9 @@ public class ApplicationServiceTests
             .Select(t => t.Name).ToList();
         Assert.Equal(["ApplicationService"], holders);
 
+        // Reporting gets a read-only view only.
+        Assert.DoesNotContain(typeof(CareerPilot.Application.Tracking.TrackingService).GetConstructors().Single().GetParameters(), p => p.ParameterType == typeof(IApplicationStore));
+
         var deps = typeof(ApplicationService).GetConstructors().Single().GetParameters().Select(p => p.ParameterType).ToList();
         Assert.DoesNotContain(typeof(ILlmClient), deps);
         Assert.DoesNotContain(typeof(HttpClient), deps);

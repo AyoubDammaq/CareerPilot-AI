@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IJobStore, EfJobStore>();
         services.AddScoped<IDocumentStore, EfDocumentStore>();
         services.AddScoped<IApplicationStore, EfApplicationStore>();
+        services.AddScoped<IApplicationReader>(sp => sp.GetRequiredService<IApplicationStore>());
         services.AddSingleton<ICvRenderer, DocxCvRenderer>();
         services.AddSingleton<IPdfRenderer, PdfDocumentRenderer>();
         services.AddSingleton<CareerPilot.Application.Import.ITextExtractor, DocumentTextExtractor>();
