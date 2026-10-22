@@ -25,7 +25,15 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - run: dotnet restore CareerPilot.slnx
+      - name: Restore
+        run: |
+          set +e
+          dotnet restore CareerPilot.slnx > restore.log 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            grep -E "error|NU[0-9]{4}" restore.log | sort -u | head -8 | while read -r line; do echo "::error title=RESTORE::${line:0:400}"; done
+          fi
+          exit $code
       - run: dotnet build CareerPilot.slnx -c Release --no-restore
       - name: Unit tests
         run: dotnet test tests/CareerPilot.Tests -c Release --no-build --logger "trx;LogFileName=unit.trx"
