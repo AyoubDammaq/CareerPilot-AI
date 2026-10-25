@@ -71,6 +71,11 @@ internal sealed class InMemoryJobStore : IJobStore
     public List<SearchRun> Runs { get; } = [];
     public int SaveCount { get; private set; }
 
+    /// <summary>Makes the Nth save throw (1-based), to test recovery from a failed save.</summary>
+    public int FailSaveNumber { get; set; }
+    public bool Discarded { get; private set; }
+    public void DiscardPendingChanges() => Discarded = true;
+
     public Task<List<WatchedCompany>> GetCompaniesAsync(bool enabledOnly, CancellationToken ct) =>
         Task.FromResult(Companies.Where(c => !enabledOnly || c.IsEnabled).ToList());
     public Task<WatchedCompany?> GetCompanyAsync(Guid id, CancellationToken ct) =>
@@ -94,6 +99,7 @@ internal sealed class InMemoryJobStore : IJobStore
     public Task SaveChangesAsync(CancellationToken ct)
     {
         SaveCount++;
+        if (SaveCount == FailSaveNumber) throw new InvalidOperationException("secret database detail");
         return Task.CompletedTask;
     }
 }

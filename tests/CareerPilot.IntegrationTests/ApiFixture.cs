@@ -90,7 +90,9 @@ public sealed class ApiFixture : IDisposable
         {
             SourceJob Make(string suffix, string title, string location, string? country = null) => new(
                 $"{company.BoardToken}-{suffix}", title, location, country, null, "Full time",
-                "We build services with C# and PostgreSQL.", null, null,
+                "We build services with C# and PostgreSQL.",
+                // Real boards send local offsets (Greenhouse: -04:00). PostgreSQL only stores UTC, so these must be converted.
+                new DateTimeOffset(2026, 10, 20, 9, 30, 0, TimeSpan.FromHours(-4)), new DateTimeOffset(2026, 12, 1, 18, 0, 0, TimeSpan.FromHours(2)),
                 $"https://jobs.example.test/{company.BoardToken}/{suffix}", $"https://jobs.example.test/{company.BoardToken}/{suffix}/apply");
 
             return Task.FromResult(new ConnectorResult(

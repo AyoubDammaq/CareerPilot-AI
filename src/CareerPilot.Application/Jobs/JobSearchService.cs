@@ -64,19 +64,36 @@ public sealed class JobSearchService(
         }
         catch (OperationCanceledException)
         {
-            run.Status = SearchRunStatus.Failed;
-            run.FinishedAt = clock.GetUtcNow();
-            run.Errors.Add("Interrupted: the service is shutting down.");
-            await jobs.SaveChangesAsync(CancellationToken.None);
+            await FailRunAsync(run.Id, "Interrupted: the service is shutting down.");
             throw;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Search run {RunId} failed unexpectedly", run.Id);
+            await FailRunAsync(run.Id, "Unexpected internal error (see server logs).");
+        }
+    }
+
+    /// <summary>
+    /// Marks the run failed. A failed save leaves the half-written changes in the unit of work, which would make this save
+    /// fail too and leave the run "Running" forever, so they are thrown away first and the run is loaded again.
+    /// </summary>
+    private async Task FailRunAsync(Guid runId, string error)
+    {
+        try
+        {
+            jobs.DiscardPendingChanges();
+            var run = await jobs.GetRunAsync(runId, CancellationToken.None);
+            if (run is null) return;
             run.Status = SearchRunStatus.Failed;
             run.FinishedAt = clock.GetUtcNow();
-            run.Errors.Add("Unexpected internal error (see server logs).");
+            run.Errors.Add(error);
             await jobs.SaveChangesAsync(CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            // The start-up recovery will close the run next time the service starts.
+            logger.LogError(ex, "Could not record that search run {RunId} failed", runId);
         }
     }
 

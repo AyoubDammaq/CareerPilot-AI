@@ -98,5 +98,7 @@ public sealed class EfJobStore(CareerPilotDbContext db) : IJobStore
     public Task<List<SearchRun>> GetActiveRunsAsync(CancellationToken ct) =>
         db.SearchRuns.Where(r => r.Status == SearchRunStatus.Queued || r.Status == SearchRunStatus.Running).ToListAsync(ct);
 
+    public void DiscardPendingChanges() => db.ChangeTracker.Clear();
+
     public Task SaveChangesAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
 }

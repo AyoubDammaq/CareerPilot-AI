@@ -82,6 +82,9 @@ public class JobDiscoveryTests(ApiFixture api) : IClassFixture<ApiFixture>
         // Default view: relevant, open jobs only.
         var relevant = (await client.GetFromJsonAsync<PagedResult<JobSummaryDto>>("/api/jobs?q=Backend%20Engineer&pageSize=100", Json))!;
         Assert.NotEmpty(relevant.Items);
+        // The fake feed sends dates with local offsets (-04:00 and +02:00), as real boards do; they must be stored as the same instants.
+        Assert.All(relevant.Items, j => Assert.Equal(new DateTimeOffset(2026, 10, 20, 13, 30, 0, TimeSpan.Zero), j.PublishedAt));
+        Assert.All(relevant.Items, j => Assert.Equal(new DateTimeOffset(2026, 12, 1, 16, 0, 0, TimeSpan.Zero), j.ApplicationDeadline));
         Assert.All(relevant.Items, j =>
         {
             Assert.True(j.IsRelevant);

@@ -25,6 +25,15 @@ public class CareerPilotDbContext(DbContextOptions<CareerPilotDbContext> options
     public DbSet<GeneratedDocument> GeneratedDocuments => Set<GeneratedDocument>();
     public DbSet<JobApplication> JobApplications => Set<JobApplication>();
 
+    /// <summary>
+    /// PostgreSQL's timestamptz only accepts UTC. Job boards send dates with local offsets (for example -04:00), so every
+    /// DateTimeOffset is converted to UTC when it is written. The instant is unchanged.
+    /// </summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<DateTimeOffset>().HaveConversion<UtcDateTimeOffsetConverter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<UserProfile>(b =>

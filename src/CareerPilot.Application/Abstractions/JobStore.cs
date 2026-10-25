@@ -40,5 +40,8 @@ public interface IJobStore
     Task<bool> HasActiveRunAsync(DateTimeOffset since, CancellationToken ct);
     Task<List<SearchRun>> GetActiveRunsAsync(CancellationToken ct);
 
+    /// <summary>Forgets every unsaved change, so a failed save cannot poison the next one.</summary>
+    void DiscardPendingChanges();
+
     Task SaveChangesAsync(CancellationToken ct);
 }

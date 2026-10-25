@@ -171,6 +171,18 @@ public class JobSearchServiceTests
     }
 
     [Fact]
+    public async Task A_run_whose_final_save_fails_is_still_marked_failed_and_never_left_running()
+    {
+        var h = new Harness().AddCompany("Alpha", () => Helpers.Result(true, Helpers.Job("1")));
+        h.Store.FailSaveNumber = 3; // 1 = queued, 2 = running, 3 = the save of the results
+        var run = await h.RunAsync();
+        Assert.Equal(SearchRunStatus.Failed, run.Status);
+        Assert.NotNull(run.FinishedAt);
+        Assert.True(h.Store.Discarded);
+        Assert.DoesNotContain("secret", string.Join(" ", run.Errors));
+    }
+
+    [Fact]
     public async Task An_unexpected_error_fails_the_run_without_leaking_its_message()
     {
         var h = new Harness().AddCompany("Alpha", () => throw new InvalidOperationException("secret connection string"));
