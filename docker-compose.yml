@@ -15,8 +15,8 @@ services:
       retries: 10
     security_opt:
       - no-new-privileges:true
-    ports:
-      - "127.0.0.1:5432:5432"   # local access only
+    # No published port on purpose: only the API (inside Docker's private network) talks to the database.
+    # To inspect it from your computer, add:  ports: ["127.0.0.1:55432:5432"]  (a port nothing else uses).
 
   api:
     build:

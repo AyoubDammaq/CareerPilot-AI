@@ -25,7 +25,7 @@ CareerPilot AI is a **single-user** app that holds personal data (your profile, 
 | Secrets | Passwords, signing key and AI key come only from the environment (`.env`, never committed). CI fails if a credential-shaped string or a `.env` file is committed | Tested (CI) |
 | AI provider key | Never returned by any endpoint, never logged; provider error bodies are never shown | Tested (CI) |
 | Untrusted text | Job postings and CV text are fenced and treated as data; the model has no tools, so injected instructions cannot do anything | Tested with fake models only |
-| Containers | `no-new-privileges` on all; the API runs as a non-root user with all Linux capabilities dropped; database and API ports bind to `127.0.0.1` only | Config only; **never run in Docker by me** |
+| Containers | `no-new-privileges` on all; the API runs as a non-root user with all Linux capabilities dropped; the database is not reachable from outside Docker, and the API and web ports bind to `127.0.0.1` only | Config only; **never run in Docker by me** |
 | Production start | Refuses to start with no database migrations instead of creating tables ad hoc | Written, unit-checked logic |
 | Dependencies | Dependabot proposes updates weekly; CI reports known vulnerabilities in NuGet and npm packages (reports, does not block) | Configured |
 
