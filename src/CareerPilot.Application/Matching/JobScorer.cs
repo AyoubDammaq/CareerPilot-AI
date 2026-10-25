@@ -103,9 +103,14 @@ public static class JobScorer
         var matched = jobSkills.Where(s => ownSkills.Contains(Canonical(s))).ToList();
         var missing = jobSkills.Except(matched).ToList();
         var denominator = Math.Max(1, Math.Min(jobSkills.Count, Math.Max(1, o.SkillCoverageCap)));
-        var fraction = Math.Min(1.0, (double)matched.Count / denominator);
-        return (matched, missing, fraction, true,
-            $"{matched.Count} of {jobSkills.Count} technologies in the posting are on your profile.");
+        var evidence = Math.Max(1, o.SkillMinEvidence);
+        // Few technologies named: pad with neutral half-matches up to the minimum, so a short list cannot score full marks.
+        var counted = Math.Min(matched.Count, denominator);
+        var fraction = Math.Min(1.0, (counted + 0.5 * Math.Max(0, evidence - denominator)) / Math.Max(denominator, evidence));
+        var note = $"{matched.Count} of {jobSkills.Count} technologies in the posting are on your profile.";
+        if (denominator < evidence)
+            note += $" Only {jobSkills.Count} {(jobSkills.Count == 1 ? "technology was" : "technologies were")} found in the posting, so this counts for less.";
+        return (matched, missing, fraction, denominator >= Math.Min(3, evidence), note);
     }
 
     // ---- role ---------------------------------------------------------------------------------

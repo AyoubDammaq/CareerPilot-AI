@@ -20,6 +20,12 @@ public sealed class ScoringOptions
     /// <summary>Skills compared against: a job asking for more than this many known skills is not penalised further.</summary>
     public int SkillCoverageCap { get; set; } = 8;
 
+    /// <summary>
+    /// Fewest technologies a posting must name before its skills match can earn full marks. Fewer than this and the missing
+    /// evidence counts as a neutral half-match, so "2 of 2" cannot look as convincing as "6 of 6".
+    /// </summary>
+    public int SkillMinEvidence { get; set; } = 4;
+
     public int StrongAt { get; set; } = 75;
     public int GoodAt { get; set; } = 60;
     public int PossibleAt { get; set; } = 45;

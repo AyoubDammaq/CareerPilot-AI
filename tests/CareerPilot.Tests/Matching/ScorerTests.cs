@@ -96,7 +96,29 @@ public class ScorerTests
         var p = Profile();
         var r = Score(Job(j => j.Skills = ["Kafka", "Rust", "Scala"]), p);
         Assert.Empty(r.MatchedSkills);
-        Assert.Equal(0, r.Components.Single(c => c.Key == "skills").Points);
+        var skills = r.Components.Single(c => c.Key == "skills");
+        Assert.True(skills.Points < skills.MaxPoints / 4, "no matches must score clearly below the neutral half");
+    }
+
+    [Fact]
+    public void A_posting_that_names_only_a_couple_of_technologies_cannot_earn_full_skill_marks()
+    {
+        var few = Score(Job(j => j.Skills = ["C#", ".NET"])).Components.Single(c => c.Key == "skills");
+        var many = Score(Job(j => j.Skills = ["C#", ".NET", "PostgreSQL", "Docker"])).Components.Single(c => c.Key == "skills");
+        Assert.Equal(many.MaxPoints, many.Points, 1);           // 4 of 4 is full marks
+        Assert.Equal(many.MaxPoints * 0.75, few.Points, 1);     // 2 of 2 is only three quarters
+        Assert.False(few.Known);                                 // and lowers the confidence
+        Assert.Contains("counts for less", few.Note);
+        Assert.DoesNotContain("counts for less", many.Note);
+    }
+
+    [Fact]
+    public void One_matched_technology_is_weaker_evidence_than_one_missing_is_bad()
+    {
+        var one = Score(Job(j => j.Skills = ["C#"])).Components.Single(c => c.Key == "skills");
+        var none = Score(Job(j => j.Skills = ["Rust"])).Components.Single(c => c.Key == "skills");
+        Assert.True(one.Points > none.Points);
+        Assert.True(one.Points < one.MaxPoints);
     }
 
     [Theory]
