@@ -43,7 +43,7 @@ public static class JobIngestion
                 continue; // duplicate id inside one feed
 
             var enrichment = JobEnricher.Enrich(job, options, profileSkills);
-            var key = JobEnricher.CanonicalKey(company.Name, job.Title, enrichment.Place);
+            var key = JobEnricher.CanonicalKey(EmployerOf(job, company), job.Title, enrichment.Place);
 
             if (ownPostings.TryGetValue(job.SourceJobId, out var existing))
             {
@@ -129,7 +129,7 @@ public static class JobIngestion
 
         l.CanonicalKey = key;
         l.Title = job.Title.Trim();
-        l.CompanyName = company.Name;
+        l.CompanyName = EmployerOf(job, company);
         l.LocationText = job.LocationText.Trim();
         l.Country = e.Place.Country;
         l.City = e.Place.City;
@@ -153,6 +153,10 @@ public static class JobIngestion
         var after = (l.Title, l.Description, l.LocationText, l.ApplicationDeadline, l.SalaryMin, l.SalaryMax);
         return before != after;
     }
+
+    /// <summary>Multi-employer feeds name the employer per job; single-board sources use the watched company.</summary>
+    private static string EmployerOf(SourceJob job, WatchedCompany company) =>
+        string.IsNullOrWhiteSpace(job.CompanyName) ? company.Name : job.CompanyName.Trim();
 
     private static JobPosting NewPosting(WatchedCompany company, SourceJob job, DateTimeOffset now) => new()
     {

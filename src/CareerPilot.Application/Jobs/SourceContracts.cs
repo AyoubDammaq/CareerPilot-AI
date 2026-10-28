@@ -20,7 +20,8 @@ public sealed record SourceJob(
     decimal? SalaryMax = null,
     string? SalaryCurrency = null,
     string? SalaryPeriod = null,
-    string? Language = null);
+    string? Language = null,
+    string? CompanyName = null);   // set by sources that list many employers (e.g. Himalayas); board sources use the watched company
 
 /// <param name="IsCompleteSnapshot">True only when the whole board was read successfully. Closing of
 /// missing jobs is allowed only for complete snapshots, so a partial read never closes live vacancies.</param>

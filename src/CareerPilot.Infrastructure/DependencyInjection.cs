@@ -45,6 +45,7 @@ public static class DependencyInjection
         AddConnector<GreenhouseConnector>(services);
         AddConnector<LeverConnector>(services);
         AddConnector<AshbyConnector>(services);
+        AddConnector<HimalayasConnector>(services);
         return services;
     }
 

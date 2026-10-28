@@ -17,11 +17,12 @@ export class JobSearchPage {
   private readonly api = inject(ApiService);
   private pollHandle: ReturnType<typeof setTimeout> | undefined;
 
-  readonly kinds: JobSourceKind[] = ['Greenhouse', 'Lever', 'Ashby'];
+  readonly kinds: JobSourceKind[] = ['Greenhouse', 'Lever', 'Ashby', 'Himalayas'];
   readonly tokenHelp: Record<JobSourceKind, string> = {
     Greenhouse: 'The last part of boards.greenhouse.io/<token> or job-boards.greenhouse.io/<token>.',
     Lever: 'The last part of jobs.lever.co/<site>.',
     Ashby: 'The last part of jobs.ashbyhq.com/<board>.',
+    Himalayas: 'A search keyword (for example dotnet or backend-engineer), not a company. Remote jobs from many employers.',
   };
 
   readonly companies = signal<CompanyDto[]>([]);

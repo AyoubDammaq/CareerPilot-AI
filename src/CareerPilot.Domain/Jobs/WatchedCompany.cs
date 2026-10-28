@@ -11,7 +11,7 @@ public class WatchedCompany : Entity
     public string Name { get; set; } = "";
     public JobSourceKind Kind { get; set; }
 
-    /// <summary>Greenhouse board token, Lever site name or Ashby job-board name.</summary>
+    /// <summary>Greenhouse board token, Lever site name, Ashby job-board name, or (Himalayas) a search keyword such as 'dotnet'.</summary>
     public string BoardToken { get; set; } = "";
 
     /// <summary>Lever only: use the EU data-center API host.</summary>

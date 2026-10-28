@@ -1,4 +1,4 @@
-export type JobSourceKind = 'Greenhouse' | 'Lever' | 'Ashby';
+export type JobSourceKind = 'Greenhouse' | 'Lever' | 'Ashby' | 'Himalayas';
 
 export interface CompanyDto {
   id: string;
