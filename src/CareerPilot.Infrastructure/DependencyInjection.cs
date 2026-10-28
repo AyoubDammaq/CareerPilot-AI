@@ -46,6 +46,13 @@ public static class DependencyInjection
         AddConnector<LeverConnector>(services);
         AddConnector<AshbyConnector>(services);
         AddConnector<HimalayasConnector>(services);
+
+        services.AddHttpClient<CareerPilot.Application.Jobs.IJobPageFetcher, SafeJobPageFetcher>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(20);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd(ConnectorSupport.UserAgent);
+            })
+            .ConfigurePrimaryHttpMessageHandler(SafeJobPageFetcher.CreateHandler);
         return services;
     }
 

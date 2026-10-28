@@ -36,4 +36,17 @@ public sealed class DiscoveryOptions
 
     /// <summary>A queued or running search older than this is considered dead and no longer blocks a new one.</summary>
     public int ActiveRunTimeoutMinutes { get; set; } = 30;
+
+    /// <summary>
+    /// Hosts whose pages CareerPilot never fetches on its own (login walls, anti-bot rules, or terms that
+    /// forbid automated access that were not confirmed). For these the owner pastes the job text instead.
+    /// Subdomains are included. Extend this list in configuration if needed.
+    /// </summary>
+    public List<string> ManualOnlyHosts { get; set; } =
+    [
+        "linkedin.com", "indeed.com", "wellfound.com", "angel.co", "glassdoor.com",
+        "tanitjobs.com", "keejob.com",
+    ];
+
+    public int ImportMaxPageBytes { get; set; } = 1_000_000;
 }

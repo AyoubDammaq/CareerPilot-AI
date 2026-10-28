@@ -41,6 +41,10 @@ public static class JobEndpoints
         runs.MapGet("{id:guid}", async (Guid id, JobQueryService s, CancellationToken ct) => Results.Ok(await s.GetRunAsync(id, ct)));
 
         var jobs = app.MapGroup("/api/jobs");
+        jobs.MapPost("import/url", async (ImportUrlInput input, ManualImportService s, CancellationToken ct) =>
+            Results.Ok(await s.ImportUrlAsync(input, ct))).RequireRateLimiting("expensive");
+        jobs.MapPost("import/text", async (ManualJobInput input, ManualImportService s, CancellationToken ct) =>
+            Results.Ok(await s.ImportTextAsync(input, ct))).RequireRateLimiting("expensive");
         jobs.MapGet("", async (
             JobQueryService s, CancellationToken ct,
             string? q, string? country, string? workMode, string? status, bool? relevantOnly,

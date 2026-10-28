@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<CompanyService>();
         services.AddScoped<JobQueryService>();
         services.AddScoped<JobSearchService>();
+        services.AddScoped<ManualImportService>();
         return services;
     }
 }

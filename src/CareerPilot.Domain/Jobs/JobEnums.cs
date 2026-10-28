@@ -1,6 +1,8 @@
 namespace CareerPilot.Domain.Jobs;
 
-public enum JobSourceKind { Greenhouse, Lever, Ashby, Himalayas }
+public enum JobSourceKind { Greenhouse, Lever, Ashby, Himalayas,
+    /// <summary>Added by the owner (pasted text or a public job page URL); never fetched by a search run.</summary>
+    Manual }
 
 /// <summary>Open = seen in the latest successful snapshot; Closed = disappeared from a complete snapshot;
 /// Expired = application deadline passed; Unverified = not re-confirmed recently.</summary>

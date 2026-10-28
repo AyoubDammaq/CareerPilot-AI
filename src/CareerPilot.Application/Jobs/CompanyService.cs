@@ -14,7 +14,7 @@ public sealed partial class CompanyService(IJobStore store, IEnumerable<IJobSour
     private static partial Regex TokenRegex();
 
     public async Task<List<CompanyDto>> ListAsync(CancellationToken ct) =>
-        [.. (await store.GetCompaniesAsync(false, ct)).OrderBy(c => c.Name).Select(JobMapper.ToDto)];
+        [.. (await store.GetCompaniesAsync(false, ct)).Where(c => c.Kind != JobSourceKind.Manual).OrderBy(c => c.Name).Select(JobMapper.ToDto)];
 
     public async Task<CompanyDto> AddAsync(CompanyInput input, CancellationToken ct)
     {
@@ -95,8 +95,8 @@ public sealed partial class CompanyService(IJobStore store, IEnumerable<IJobSour
         if (name.Length is 0 or > 100) errors["name"] = ["Required, at most 100 characters."];
 
         JobSourceKind kind = default;
-        if (!Enum.TryParse(input.Kind?.Trim(), ignoreCase: false, out kind) || !Enum.IsDefined(kind))
-            errors["kind"] = [$"Must be one of: {string.Join(", ", Enum.GetNames<JobSourceKind>())}."];
+        if (!Enum.TryParse(input.Kind?.Trim(), ignoreCase: false, out kind) || !Enum.IsDefined(kind) || kind == JobSourceKind.Manual)
+            errors["kind"] = [$"Must be one of: {string.Join(", ", Enum.GetNames<JobSourceKind>().Where(n => n != nameof(JobSourceKind.Manual)))}."];
 
         var token = input.BoardToken?.Trim() ?? "";
         if (!TokenRegex().IsMatch(token))
