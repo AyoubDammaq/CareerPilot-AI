@@ -122,6 +122,13 @@ Note: the starter profile has nothing marked verified, so your first CV will be 
 | Docs: `docs/SECURITY.md` (what is and is not protected), `docs/OPERATIONS.md` (HTTPS, backups, updates, settings) | Written |
 | Not built: second factor, token revocation, data export or delete, audit-log viewer, scheduler and notifications | Known |
 
+## Phase 9 — Job platforms (2026-10-29; CI green)
+| Item | State |
+|---|---|
+| Himalayas connector (new source kind, keyword search, explicit eligibility only) | Mock-tested; **not yet run live** |
+| Manual import: pasted text and public job-page URL (JSON-LD), SSRF guard, never-fetch host list, endpoints, Job Search panel | Tested (unit, integration, frontend) |
+| Indeed MCP, LinkedIn, Keejob, Tanitjobs, Wellfound, Remote OK | Not integrated; reasons in `docs/JOB_SOURCES.md` |
+
 ## Not started
 Scheduler and notifications (nothing is pushed to you yet).
 
@@ -134,7 +141,7 @@ Scheduler and notifications (nothing is pushed to you yet).
 - CV import limits: no OCR (scanned PDFs have no text), education dates are not imported, a year-only date becomes month 01, the AI import budget (`Llm__DailyImportLimit`, default 10) is in memory and resets on restart.
 - PDF limits: Latin/Western European text only (no Arabic or CJK, they print as `?`), no clickable links, no custom fonts.
 - Worker runs in-process in the API, not as a separate Worker project.
-- Indeed/LinkedIn are not used (no public search API).
+- Indeed MCP is available only inside Claude, LinkedIn has no public job API: both are manual-import only. See `docs/JOB_SOURCES.md`.
 
 ## Exact next steps
 1. To try AI analysis: set `Llm__Provider` (Anthropic or OpenAiCompatible), `Llm__Model`, and `Llm__ApiKey` in the environment, restart the API.

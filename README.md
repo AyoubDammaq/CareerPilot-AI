@@ -38,6 +38,9 @@ CI (`.github/workflows/ci.yml`) runs all of the above plus production builds and
 Migrations are committed and applied automatically at start. After changing an entity, run the **Generate EF migration** workflow on GitHub (or `dotnet ef migrations add <Name> --project src/CareerPilot.Infrastructure --startup-project src/CareerPilot.API --output-dir Persistence/Migrations`) and commit the result. A production start refuses to run with no migrations.
 
 
+## Job sources
+Greenhouse, Lever, Ashby and the Himalayas remote feed are read automatically; anything else (LinkedIn, Indeed, Keejob, Tanitjobs, Wellfound, employer sites) is added by hand on the Job Search page. What works, what is unverified and why: `docs/JOB_SOURCES.md`.
+
 ## Optional: AI job analysis
 Off by default. To enable, set environment variables for the API (never commit keys):
 `Llm__Provider=Anthropic` (or `OpenAiCompatible`), `Llm__Model=<model id>`, `Llm__ApiKey=<key>`.
