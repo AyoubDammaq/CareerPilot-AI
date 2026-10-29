@@ -4,8 +4,9 @@
 </header>
 
 <p class="note">
-  CareerPilot reads the <strong>public job boards of the companies you list</strong> (Greenhouse, Lever and Ashby feeds). It does not search
-  LinkedIn or Indeed, which offer no public search access. Nothing is ever applied to from here.
+  CareerPilot reads the <strong>public job boards of the companies you list</strong> (Greenhouse, Lever and Ashby) and the
+  <strong>Himalayas</strong> remote-jobs feed by keyword. It does not search LinkedIn, Indeed, Keejob, Tanitjobs or Wellfound: use
+  <em>Add a job you found elsewhere</em> below for those. Nothing is ever applied to from here.
 </p>
 
 @if (loading()) {
@@ -149,4 +150,6 @@
       </div>
     </form>
   </section>
+
+  <app-import-job />
 }

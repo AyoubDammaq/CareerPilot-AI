@@ -1,5 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { sampleCompany, sampleRun } from '../../testing/fixtures';
 import { JobSearchPage } from './job-search.page';
@@ -8,7 +9,7 @@ describe('JobSearchPage', () => {
   let ctrl: HttpTestingController;
 
   function create(companies = [sampleCompany()], runs = [sampleRun()]): ComponentFixture<JobSearchPage> {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
     ctrl = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(JobSearchPage);
     fixture.detectChanges();
@@ -39,7 +40,43 @@ describe('JobSearchPage', () => {
 
   it('states what is and is not searched', () => {
     const f = create();
-    expect(el(f).textContent).toContain('LinkedIn or Indeed');
+    expect(el(f).textContent).toContain('does not search LinkedIn, Indeed');
+    expect(el(f).textContent).toContain('Himalayas');
+  });
+
+  it('imports pasted job text and shows what the server warns about', () => {
+    const f = create();
+    const input = (id: string, v: string) => {
+      const e = el(f).querySelector<HTMLInputElement | HTMLTextAreaElement>('#' + id)!;
+      e.value = v;
+      e.dispatchEvent(new Event('input'));
+    };
+    input('imp-title', 'Backend Engineer');
+    input('imp-company', 'Acme');
+    input('imp-desc', 'C# and ASP.NET Core services for customers.');
+    button(f, 'Import pasted job').click();
+
+    const req = ctrl.expectOne('/api/jobs/import/text');
+    expect(req.request.body).toMatchObject({ title: 'Backend Engineer', company: 'Acme' });
+    req.flush({ listingId: 'l1', created: true, title: 'Backend Engineer', company: 'Acme', warnings: ['Imported by hand: CareerPilot cannot confirm that this job is still open.'] });
+    f.detectChanges();
+    expect(el(f).textContent).toContain('Added: Backend Engineer at Acme');
+    expect(el(f).textContent).toContain('cannot confirm');
+  });
+
+  it('shows the server reason when a page address is refused', () => {
+    const f = create();
+    const url = el(f).querySelector<HTMLInputElement>('#imp-url')!;
+    url.value = 'https://www.linkedin.com/jobs/view/1';
+    url.dispatchEvent(new Event('input'));
+    button(f, 'Import from address').click();
+
+    ctrl.expectOne('/api/jobs/import/url').flush(
+      { title: 'Validation failed', errors: { url: ['CareerPilot does not fetch pages from www.linkedin.com automatically.'] } },
+      { status: 400, statusText: 'Bad Request' },
+    );
+    f.detectChanges();
+    expect(el(f).querySelector('[role=alert]')!.textContent).toContain('does not fetch pages from www.linkedin.com');
   });
 
   it('shows a helpful empty state', () => {
@@ -49,7 +86,7 @@ describe('JobSearchPage', () => {
   });
 
   it('shows an error with a retry when loading fails', () => {
-    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
     ctrl = TestBed.inject(HttpTestingController);
     const f = TestBed.createComponent(JobSearchPage);
     f.detectChanges();

@@ -263,3 +263,19 @@ export interface DocumentSummaryDto {
   stale: boolean;
   source: string | null;
 }
+
+export interface ManualJobInput {
+  title: string;
+  company: string;
+  location: string;
+  description: string;
+  url: string;
+}
+
+export interface ManualImportResult {
+  listingId: string;
+  created: boolean;
+  title: string;
+  company: string;
+  warnings: string[];
+}

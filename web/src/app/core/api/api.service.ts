@@ -16,6 +16,8 @@ import {
   JobDetailDto,
   JobFilters,
   JobSummaryDto,
+  ManualImportResult,
+  ManualJobInput,
   LoginResponse,
   ImportApplyInput,
   ImportApplyResult,
@@ -67,6 +69,14 @@ export class ApiService {
 
   deleteCompany(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/sources/companies/${id}`);
+  }
+
+  importJobFromUrl(url: string): Observable<ManualImportResult> {
+    return this.http.post<ManualImportResult>(`${this.base}/jobs/import/url`, { url });
+  }
+
+  importJobFromText(input: ManualJobInput): Observable<ManualImportResult> {
+    return this.http.post<ManualImportResult>(`${this.base}/jobs/import/text`, input);
   }
 
   testCompany(id: string): Observable<CompanyTestResult> {

@@ -4,12 +4,13 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ApiService } from '../../core/api/api.service';
 import { CompanyDto, CompanyTestResult, JobSourceKind, SearchRunDto } from '../../core/models';
 import { fieldErrors, problemMessage } from '../../shared/http-error';
+import { ImportJobComponent } from './import-job.component';
 
 const ACTIVE = ['Queued', 'Running'];
 
 @Component({
   selector: 'app-job-search-page',
-  imports: [ReactiveFormsModule, DatePipe],
+  imports: [ReactiveFormsModule, DatePipe, ImportJobComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './job-search.page.html',
 })
